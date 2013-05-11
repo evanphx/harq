@@ -1,0 +1,13 @@
+package wire;
+
+message Message {
+  required string destination = 1;
+  required string payload = 2;
+
+  optional int32 flags = 3;
+}
+
+message Action {
+  required int32 type = 1;
+  optional string payload = 2;
+}
