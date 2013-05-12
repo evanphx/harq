@@ -1,11 +1,3 @@
-/*-*- c++ -*-
- *
- * rl_util.cpp
- * author : KDr2
- *
- */
-
-
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -17,11 +9,12 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/socket.h>
 
 #include "util.hpp"
 #include "server.hpp"
 
-void set_nonblock (int fd) {
+void set_nonblock(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);
     int r = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
     assert(0 <= r && "Setting socket non-block failed!");
@@ -59,8 +52,6 @@ void sig_term(int signo) {
         exit(0); 
     }
 }
-
-
 
 /* Glob-style pattern matching, from redis */
 int stringmatchlen(const char *pattern, int patternLen,

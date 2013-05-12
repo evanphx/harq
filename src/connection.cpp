@@ -12,236 +12,178 @@
 #include "util.hpp"
 #include "server.hpp"
 #include "connection.hpp"
+#include "action.hpp"
 
 #include "wire.pb.h"
 
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 
-#define CHECK_BUFFER(N) do{                                                      \
-        if(next_idx+(N)>(read_buffer+buffered_data)){                            \
-            next_idx=old_ni;                                                     \
-            memmove(read_buffer,next_idx,buffered_data-(next_idx-read_buffer));  \
-            buffered_data-=(next_idx-read_buffer);next_idx=read_buffer;          \
-            read_buffer[buffered_data]=0;                                        \
-            return 0;}}while(0)
-
-#define START_WRITER() do{if(!writer_started){writer_started=true;ev_io_start(server->loop, &write_watcher);}}while(0)
-
-Connection::Connection(Server *s, int fd):
-    db_index(0), fd(fd), server(s), buffered_data(0),writer_started(false)
+Connection::Connection(Server *s, int fd)
+  : tap_(false)
+  , sock_(fd)
+  , read_w_(s->loop())
+  , write_w_(s->loop())
+  , db_index(0)
+  , server(s)
+  , buffer_(1024)
+  , state(eReadSize)
+  , writer_started(false)
 {
+  read_w_.set<Connection, &Connection::on_readable>(this);
+  // write_w_->set<Connection, &Connection::on_writable>(this);
 
-    next_idx = read_buffer;
-    ev_init(&read_watcher, Connection::on_readable);
-    read_watcher.data = this;
+  timeout_watcher.data = this;
 
-    ev_init(&write_watcher, Connection::on_writable);
-    write_watcher.data = this;
-
-    timeout_watcher.data = this;
-
-    set_nonblock(fd);
-    open=true;
-    // current_request=NULL;
-    // transaction=NULL;
-    server->clients_num++;
-    //memcpy(sockaddr, &addr, addr_len);
-    //ip = inet_ntoa(sockaddr.sin_addr);
+  sock_.set_nonblock();
+  open=true;
+  server->clients_num++;
 }
 
-Connection::~Connection()
-{
-    if(open){
-        ev_io_stop(server->loop_, &read_watcher);
-        if(writer_started){
-            ev_io_stop(server->loop_, &write_watcher);
-        }
-        close(fd);
+Connection::~Connection() {
+  if(open) {
+    read_w_.stop();
+
+    if(writer_started){
+      write_w_.stop();
     }
-    server->clients_num--;
+
+    close(sock_.fd);
+  }
+
+  server->clients_num--;
 }
 
-void Connection::start()
-{
-    ev_io_set(&write_watcher, fd, EV_WRITE);
-
-    ev_io_set(&read_watcher, fd, EV_READ);
-    ev_io_start(server->loop_, &read_watcher);
+void Connection::start() {
+  read_w_.start(sock_.fd, EV_READ);
 }
 
+void Connection::handle_message(wire::Message& msg) {
+  std::string dest = msg.destination();
 
-size_t Connection::get_int() {
-    char *b = next_idx;
-    size_t val = 0;
-    while(*b != '\r') {
-        val *= 10;
-        val += (*b++ - '0');
+  if(dest == std::string("+")) {
+    wire::Action act;
+
+#ifdef DEBUG
+    std::cout << "ACTION!\n";
+#endif
+
+    if(act.ParseFromString(msg.payload())) {
+      ActionType type = (ActionType)act.type();
+      switch(type) {
+      case eSubscribe:
+        subscriptions_.push_back(act.payload());
+        break;
+      case eTap:
+        tap_ = true;
+        break;
+      }
     }
-    if(b<=(read_buffer+buffered_data-1)){
-        b += 2;
-        next_idx = b;
-        return val;
-    }
-    return -1;
+  } else {
+#ifdef DEBUG
+    std::cout << "dest='" << msg.destination() << "' "
+              << "payload='" << msg.payload() << "'\n";
+#endif
+
+    server->deliver(msg);
+  }
 }
 
-void Connection::do_request(){
-  /*
-    if(current_request && current_request->completed()){
-        current_request->run();
-        if(current_request){
-            delete current_request;
-            current_request=NULL;
-        }
+void Connection::deliver(wire::Message& msg) {
+  std::string dest = msg.destination();
+
+  bool deliver = tap_;
+
+  if(!tap_) {
+    for(std::list<std::string>::iterator i = subscriptions_.begin();
+        i != subscriptions_.end();
+        ++i) {
+      if(*i == dest) {
+        deliver = true;
+        break;
+      }
     }
-    */
+  }
+
+  if(deliver) sock_.write(msg);
 }
 
-int Connection::do_read() {
+bool Connection::do_read(int revents) {
+  if(EV_ERROR & revents) {
+    puts("on_readable() got error event, closing connection.");
+    return false;
+  }
+
+  ssize_t recved = buffer_.fill(sock_.fd);
+
+  if(recved == 0) return false;
+
+  printf("Read %ld bytes\n", recved);
+
+  if(recved <= 0) return false;
+
   if(state == eReadSize) {
+#ifdef DEBUG
     std::cout << "READ SIZE\n";
-    int size = *((int*)(read_buffer));
+#endif
 
+    if(buffer_.read_available() < 4) return true;
+
+    int size = buffer_.read_int32();
+
+#ifdef DEBUG
     std::cout << "msg size=" << size << "\n";
+#endif
 
     need = size;
 
     state = eReadMessage;
-    return 0;
   }
 
-  std::cout << "READ MSG\n";
+#ifdef DEBUG
+  std::cout << "avail=" << buffer_.read_available() << "\n";
+#endif
 
-  // google::protobuf::io::FileInputStream stream(fd);
+  if(buffer_.read_available() < need) {
+#ifdef DEBUG
+    std::cout << "NEED MORE\n";
+#endif
+    return true;
+  }
+
+#ifdef DEBUG
+  std::cout << "READ MSG\n";
+#endif
 
   wire::Message msg;
 
-  msg.ParseFromArray(read_buffer + 4, need);
-  // msg.ParseFromZeroCopyStream(&stream);
+  msg.ParseFromArray(buffer_.read_pos(), need);
 
-  std::cout << "dest='" << msg.destination() << "' "
-            << "payload='" << msg.payload() << "'\n";
+  buffer_.advance_read(need);
+
+  handle_message(msg);
 
   state = eReadSize;
 
-  
-  /*
-    char *old_ni=next_idx;
-    while(next_idx<(read_buffer+buffered_data)){
-        old_ni=next_idx;
-        if(!current_request)current_request=new Request(this);
-        // 1. read the arg count:
-        if(current_request->arg_count<0){
-            CHECK_BUFFER(4);
-            if(*next_idx++ != '*') return -1;
-            current_request->arg_count=get_int();
-            current_request->arg_count--;
-            old_ni=next_idx;
-        }
-        // 2. read the request name
-        if(current_request->arg_count>=0 && current_request->name.empty()){
-            CHECK_BUFFER(4);
-            if(*next_idx++ != '$') return -1;
-            int len=get_int();
-            CHECK_BUFFER(len+2);
-            current_request->name=std::string(next_idx,len);
-            std::transform(current_request->name.begin(), current_request->name.end(),
-                           current_request->name.begin(), ::tolower);
-            next_idx+=len+2;
-            old_ni=next_idx;
-        }
-        // 3. read a arg
-        if(current_request->arg_count>=0 &&
-           current_request->arg_count - current_request->args.size()>0){
-            CHECK_BUFFER(4);
-            if(*next_idx++ != '$') return -1;
-            int len=get_int();
-            CHECK_BUFFER(len+2);
-            current_request->append_arg(std::string(next_idx,len));
-            next_idx+=len+2;
-            old_ni=next_idx;
-        }
-        // 4. do the request
-        if(current_request->arg_count>=0 &&
-           current_request->arg_count - current_request->args.size()==0){
-            do_request();
-            if(next_idx>=(read_buffer+buffered_data)){
-                buffered_data=0;
-                next_idx=read_buffer;
-                old_ni=next_idx;
-                return 1;
-            }
-        }
-    }
-    old_ni=next_idx;
-    CHECK_BUFFER(1);
-    // 5. done
-    */
-    return 1;
+  return true;
 }
 
-void Connection::on_readable(struct ev_loop *loop, ev_io *watcher, int revents)
+void Connection::on_readable(ev::io& w, int revents)
 {
-    Connection *connection = static_cast<Connection*>(watcher->data);
-    size_t offset = connection->buffered_data;
-    int left = READ_BUFFER - offset;
-    char* recv_buffer = connection->read_buffer + offset;
-    ssize_t recved;
-
-    //assert(ev_is_active(&connection->timeout_watcher));
-    assert(watcher == &connection->read_watcher);
-
-    // No more buffer space.
-    if(left == 0) return;
-
-    if(EV_ERROR & revents) {
-        puts("on_readable() got error event, closing connection.");
-        return;
-    }
-
-    recved = recv(connection->fd, recv_buffer, left, 0);
-
-    if(recved == 0) {
-        delete connection;
-        return;
-    }
-
-    printf("Read %ld bytes\n", recved);
-
-    if(recved <= 0) return;
-
-    recv_buffer[recved] = 0;
-
-    connection->buffered_data += recved;
-
-    int ret = connection->do_read();
-    switch(ret) {
-    case -1:
-        puts("bad protocol error");
-        // fallthrough
-        break;
-    case 1:
-        connection->buffered_data = 0;
-        break;
-    case 0:
-        // more data needed, leave the buffer.
-        //TODO
-        break;
-    default:
-        puts("unknown return error");
-        break;
-    }
-
-    /* rl_connection_reset_timeout(connection); */
-
+  if(!do_read(revents)) {
+    server->remove_connection(this);
+    delete this;
     return;
+  }
 
-    /* error: */
-    /* rl_connection_schedule_close(connection); */
+  /* rl_connection_reset_timeout(connection); */
+
+  /* error: */
+  /* rl_connection_schedule_close(connection); */
 }
 
 
-int Connection::do_write(){
+int Connection::do_write() {
+  /*
     size_t nleft=write_buffer.size();
     ssize_t nwritten=0;
     const char *ptr=write_buffer.c_str();
@@ -261,12 +203,14 @@ int Connection::do_write(){
         writer_started=false;
         ev_io_stop(server->loop_, &write_watcher);
     }
+    */
     return 1;
 }
 
 
-void Connection::on_writable(struct ev_loop *loop, ev_io *watcher, int revents)
+void Connection::on_writable(ev::io& w, int revents)
 {
+  /*
     Connection *connection = static_cast<Connection*>(watcher->data);
     int ret = connection->do_write();
     switch(ret) {
@@ -283,57 +227,6 @@ void Connection::on_writable(struct ev_loop *loop, ev_io *watcher, int revents)
         puts("unknown return error");
         break;
     }
+    */
 }
 
-/*
-void Connection::write_nil(){
-    write_buffer+="$-1\r\n";
-    START_WRITER();
-}
-
-void Connection::write_error(const char* msg){
-    write_buffer+="-";
-    write_buffer+=std::string(msg,strlen(msg));
-    write_buffer+="\r\n";
-    START_WRITER();
-}
-
-void Connection::write_status(const char* msg){
-    write_buffer+="+";
-    write_buffer+=std::string(msg,strlen(msg));
-    write_buffer+="\r\n";
-    START_WRITER();
-}
-
-void Connection::write_integer(const char *out, size_t out_size){
-    write_buffer+=":";
-    write_buffer+=std::string(out,out_size);
-    write_buffer+="\r\n";
-    START_WRITER();
-}
-
-void Connection::write_bulk(const char *out, size_t out_size){
-    char buf[32];
-    int count = sprintf(buf, "%ld", out_size);
-    write_buffer+="$";
-    write_buffer+=std::string(buf,count);
-    write_buffer+="\r\n";
-    write_buffer+=std::string(out,out_size);
-    write_buffer+="\r\n";
-    START_WRITER();
-}
-
-void Connection::write_bulk(const std::string &out){
-    write_bulk(out.c_str(), out.size());
-    START_WRITER();
-}
-
-void Connection::write_mbulk_header(int n){
-    char buf[32];
-    int count = sprintf(buf, "%d", n);
-    write_buffer+="*";
-    write_buffer+=std::string(buf,count);
-    write_buffer+="\r\n";
-    START_WRITER();
-}
-*/

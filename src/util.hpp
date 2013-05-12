@@ -1,12 +1,5 @@
-/*-*- c++ -*-
- *
- * rl_util.h
- * author : KDr2
- *
- */
-
-#ifndef _RL_UTIL_H_INCLUDED
-#define _RL_UTIL_H_INCLUDED
+#ifndef UTIL_HPP
+#define UTIL_HPP
 
 void set_nonblock(int fd);
 

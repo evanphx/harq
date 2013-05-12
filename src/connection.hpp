@@ -2,66 +2,63 @@
 #define CONNECTION_HPP
 
 #include <vector>
+#include <list>
 #include <string>
 
 #include <ev.h>
 #include <leveldb/c.h>
 
 #include "qadmus.hpp"
+#include "buffer.hpp"
+#include "socket.hpp"
 
 class Server;
 
+namespace wire {
+  class Message;
+}
 
 class Connection {
+  std::list<std::string> subscriptions_;
+  bool tap_;
+  Socket sock_;
+  ev::io read_w_;
+  ev::io write_w_;
 
 public:
-    bool open;
-    int db_index;
-    int fd;
-    Server *server;
-    // Request *current_request;
-    // Request *transaction;
+  bool open;
+  int db_index;
+  Server *server;
 
-    char *next_idx;        /* next val to handle*/
-    int buffered_data;   /* data has been read */
-    char read_buffer[READ_BUFFER];
+  Buffer buffer_;
 
-    enum State { eReadSize, eReadMessage } state;
+  enum State { eReadSize, eReadMessage } state;
 
-    char* next_data;
-    int need;
+  int need;
 
-    bool writer_started;
-    std::string write_buffer;
+  bool writer_started;
 
-    ev_io write_watcher;
-    ev_io read_watcher;
-    ev_timer timeout_watcher;
-    ev_timer goodbye_watcher;
+  ev_timer timeout_watcher;
+  ev_timer goodbye_watcher;
 
-    /*** methods ***/
+  /*** methods ***/
 
-    Connection(Server *s, int fd);
-    ~Connection();
+  Connection(Server *s, int fd);
+  ~Connection();
 
-    static void on_readable(struct ev_loop *loop, ev_io *watcher, int revents);
-    static void on_writable(struct ev_loop *loop, ev_io *watcher, int revents);
+  Buffer& buffer() {
+    return buffer_;
+  }
 
-    void start();
-    size_t get_int();
-    int  do_read();
-    int  do_write();
-    void do_request();
+  void on_readable(ev::io& w, int revents);
+  void on_writable(ev::io& w, int revents);
 
-    /*
-    void write_nil();
-    void write_error(const char* msg);
-    void write_status(const char* msg);
-    void write_integer(const char *out, size_t out_size);
-    void write_bulk(const char *out, size_t out_size);
-    void write_bulk(const std::string &out);
-    void write_mbulk_header(int n);
-    */
+  void start();
+  bool do_read(int revents);
+  int  do_write();
+
+  void handle_message(wire::Message& msg);
+  void deliver(wire::Message& msg);
 };
 
 #endif

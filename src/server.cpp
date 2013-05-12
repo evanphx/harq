@@ -15,9 +15,13 @@
 #include <netinet/in.h>  /* inet_ntoa */
 #include <arpa/inet.h>   /* inet_ntoa */
 
+#include <iostream>
+
 #include "util.hpp"
 #include "server.hpp"
 #include "connection.hpp"
+
+#include "wire.pb.h"
 
 #define EVBACKEND EVFLAG_AUTO
 
@@ -37,6 +41,8 @@ Server::Server(const char* db_path, const char* hostaddr, int port, int dbn)
     , hostaddr_(hostaddr)
     , port_(port)
     , fd_(-1)
+    , loop_(EVBACKEND)
+    , connection_watcher_(loop_)
     , clients_num(0)
 {
   options_ = leveldb_options_create();
@@ -68,9 +74,6 @@ Server::Server(const char* db_path, const char* hostaddr, int port, int dbn)
       }
     }
   }
-
-  loop_ = ev_loop_new(EVBACKEND);
-  connection_watcher_.data = this;
 }
 
 Server::~Server() {
@@ -83,7 +86,6 @@ Server::~Server() {
   }
 
   delete[] db_;
-  if(loop_) ev_loop_destroy(loop_);
   close(fd_);
 }
 
@@ -139,17 +141,13 @@ void Server::start() {
 
   set_nonblock(fd_);
 
-  ev_init(&connection_watcher_, Server::on_connection);
+  connection_watcher_.set<Server, &Server::on_connection>(this);
+  connection_watcher_.start(fd_, EV_READ);
 
-  ev_io_set(&connection_watcher_, fd_, EV_READ);
-  ev_io_start(loop_, &connection_watcher_);
-
-  ev_run(loop_, 0);
+  loop_.run(0);
 }
 
-void Server::on_connection(struct ev_loop *loop, ev_io *watcher, int revents) {
-  Server *s = static_cast<Server*>(watcher->data);
-
+void Server::on_connection(ev::io& w, int revents) {
   if(EV_ERROR & revents) {
     puts("on_connection() got error event, closing server.");
     return;
@@ -157,20 +155,36 @@ void Server::on_connection(struct ev_loop *loop, ev_io *watcher, int revents) {
 
   struct sockaddr_in addr; // connector's address information
   socklen_t addr_len = sizeof(addr); 
-  int fd = accept(s->fd_, (struct sockaddr*)&addr, &addr_len);
+  int fd = accept(fd_, (struct sockaddr*)&addr, &addr_len);
 
   if(fd < 0) {
     perror("accept()");
     return;
   }
 
-  Connection *connection = new Connection(s, fd);
+  Connection* connection = new Connection(this, fd);
 
   if(connection == NULL) {
     close(fd);
     return;
-  } 
+  }
+
+  connections_.push_back(connection);
+
   connection->start();
 }
 
+void Server::deliver(wire::Message& msg) {
+  std::string dest = msg.destination();
+
+  std::cout << "delivering to " << dest << " for "
+            << connections_.size() << " connections\n";
+
+  for(std::list<Connection*>::iterator i = connections_.begin();
+      i != connections_.end();
+      ++i) {
+    Connection* con = *i;
+    con->deliver(msg);
+  }
+}
 
