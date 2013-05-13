@@ -23,7 +23,6 @@ Connection::Connection(Server *s, int fd)
   , sock_(fd)
   , read_w_(s->loop())
   , write_w_(s->loop())
-  , db_index(0)
   , server(s)
   , buffer_(1024)
   , state(eReadSize)
@@ -71,10 +70,29 @@ void Connection::handle_message(wire::Message& msg) {
       ActionType type = (ActionType)act.type();
       switch(type) {
       case eSubscribe:
+#ifdef DEBUG
+        std::cout << "ACT eSubscribe\n";
+#endif
         subscriptions_.push_back(act.payload());
         break;
       case eTap:
+#ifdef DEBUG
+        std::cout << "ACT eTap\n";
+#endif
         tap_ = true;
+        break;
+      case eDurableSubscribe:
+#ifdef DEBUG
+        std::cout << "ACT eDurableSubscribe\n";
+#endif
+        subscriptions_.push_back(act.payload());
+        server->reserve(act.payload());
+        // fallthrough to flush also
+      case eFlush:
+#ifdef DEBUG
+        std::cout << "ACT eFlush\n";
+#endif
+        server->flush(this, act.payload());
         break;
       }
     }
@@ -88,23 +106,24 @@ void Connection::handle_message(wire::Message& msg) {
   }
 }
 
-void Connection::deliver(wire::Message& msg) {
+bool Connection::deliver(wire::Message& msg) {
   std::string dest = msg.destination();
 
-  bool deliver = tap_;
+  if(tap_) {
+    sock_.write(msg);
+    return false;
+  }
 
-  if(!tap_) {
-    for(std::list<std::string>::iterator i = subscriptions_.begin();
-        i != subscriptions_.end();
-        ++i) {
-      if(*i == dest) {
-        deliver = true;
-        break;
-      }
+  for(std::list<std::string>::iterator i = subscriptions_.begin();
+      i != subscriptions_.end();
+      ++i) {
+    if(*i == dest) {
+      sock_.write(msg);
+      return true;
     }
   }
 
-  if(deliver) sock_.write(msg);
+  return false;
 }
 
 bool Connection::do_read(int revents) {
@@ -117,7 +136,9 @@ bool Connection::do_read(int revents) {
 
   if(recved == 0) return false;
 
+#ifdef DEBUG
   printf("Read %ld bytes\n", recved);
+#endif
 
   if(recved <= 0) return false;
 
@@ -181,6 +202,12 @@ void Connection::on_readable(ev::io& w, int revents)
   /* rl_connection_schedule_close(connection); */
 }
 
+void Connection::write_raw(std::string val) {
+  int w = sock_.write_raw(val);
+#ifdef DEBUG
+  std::cout << "Wrote " << w << " bytes to client\n";
+#endif
+}
 
 int Connection::do_write() {
   /*

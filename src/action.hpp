@@ -3,7 +3,9 @@
 
 enum ActionType {
   eSubscribe = 1,
-  eTap
+  eTap,
+  eDurableSubscribe,
+  eFlush
 };
 
 #endif

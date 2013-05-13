@@ -2,6 +2,8 @@
 
 #include "wire.pb.h"
 
+#include <iostream>
+
 #include <unistd.h>
 #include <sys/socket.h>
 #include <fcntl.h>
@@ -17,6 +19,19 @@ int Socket::write(wire::Message& msg) {
   msg.SerializeToZeroCopyStream(&stream);
 
   return size;
+}
+
+int Socket::write_raw(std::string val) {
+  int size = val.size();
+
+  ::write(fd, &size, sizeof(int));
+
+  int wrote = ::write(fd, val.c_str(), val.size());
+  if(wrote != val.size()) {
+    std::cerr << "Didn't do a full write...\n";
+  }
+
+  return wrote;
 }
 
 bool Socket::read(wire::Message& msg) {

@@ -16,6 +16,7 @@
 #include <arpa/inet.h>   /* inet_ntoa */
 
 #include <iostream>
+#include <sstream>
 
 #include "util.hpp"
 #include "server.hpp"
@@ -35,9 +36,8 @@
 #define EVBACKEND EVBACKEND_KQUEUE
 #endif
 
-Server::Server(const char* db_path, const char* hostaddr, int port, int dbn)
-    : db_num_(dbn)
-    , db_path_(db_path)
+Server::Server(std::string db_path, std::string hostaddr, int port)
+    : db_path_(db_path)
     , hostaddr_(hostaddr)
     , port_(port)
     , fd_(-1)
@@ -45,47 +45,17 @@ Server::Server(const char* db_path, const char* hostaddr, int port, int dbn)
     , connection_watcher_(loop_)
     , clients_num(0)
 {
-  options_ = leveldb_options_create();
-  leveldb_options_set_create_if_missing(options_, 1);
+  options_.create_if_missing = true;
 
-  read_options_ = leveldb_readoptions_create();
-  write_options_ = leveldb_writeoptions_create();
-
-  char* err = 0;
-
-  if(db_num_ < 1) {
-    db_=new leveldb_t*[1];
-    db_[0] = leveldb_open(options_, db_path_.c_str(), &err);
-    if(err) {
-      puts(err);
-      exit(1);
-    }
-  } else {
-    db_=new leveldb_t*[db_num_];
-    char buf[16];
-    for(int i=0;i<db_num_;i++){
-      int count = sprintf(buf, "/db-%03d", i);
-      //TODO the db path
-      db_[i] = leveldb_open(options_, (db_path+std::string(buf,count)).c_str(), &err);
-      if(err) {
-        puts(buf);
-        puts(err);
-        exit(1);
-      }
-    }
+  leveldb::Status s = leveldb::DB::Open(options_, db_path_, &db_);
+  if(!s.ok()) {
+    puts(s.ToString().c_str());
+    exit(1);
   }
 }
 
 Server::~Server() {
-  if(db_num_ < 1) {
-    leveldb_close(db_[0]);
-  } else {
-    for(int i=0;i<db_num_;i++){
-      leveldb_close(db_[i]);
-    }
-  }
-
-  delete[] db_;
+  delete db_;
   close(fd_);
 }
 
@@ -174,17 +144,141 @@ void Server::on_connection(ev::io& w, int revents) {
   connection->start();
 }
 
+void Server::reserve(std::string dest) {
+  std::string val;
+  leveldb::Status s = db_->Get(read_options_, dest, &val);
+
+  if(s.ok()) {
+#ifdef DEBUG
+    std::cout << "Already reserved " << dest << "\n";
+#endif
+    // Already reserved, good to go.
+  } else {
+    s = db_->Put(write_options_, dest, "0");
+#ifdef DEBUG
+    std::cout << "Reserved " << dest << "\n";
+#endif
+    if(!s.ok()) {
+      std::cerr << "Unable to reserve " << dest << "\n";
+    }
+  }
+}
+
 void Server::deliver(wire::Message& msg) {
   std::string dest = msg.destination();
 
   std::cout << "delivering to " << dest << " for "
             << connections_.size() << " connections\n";
 
+  bool consumed = false;
+
   for(std::list<Connection*>::iterator i = connections_.begin();
       i != connections_.end();
       ++i) {
     Connection* con = *i;
-    con->deliver(msg);
+    consumed |= con->deliver(msg);
+  }
+
+  if(!consumed) {
+    std::string val;
+    leveldb::Status s = db_->Get(read_options_, dest, &val);
+    if(s.ok()) {
+      int c = atoi(val.c_str());
+      std::stringstream ss;
+      ss << dest;
+      ss << ":";
+      ss << c;
+
+#ifdef DEBUG
+      std::cout << "Writing persisted message for " << dest
+                << " (" << c  << ")\n";
+#endif
+
+      s = db_->Put(write_options_, ss.str(), msg.SerializeAsString());
+      if(!s.ok()) {
+        std::cerr << "Unable to write message to DB: " << s.ToString() << "\n";
+      } else {
+        c++;
+        std::stringstream s2;
+        s2 << c;
+
+        s = db_->Put(write_options_, dest, s2.str());
+
+        if(s.ok()) {
+#ifdef DEBUG
+          std::cout << "Updated index of " << dest << " to " << c << "\n";
+#endif
+        } else {
+          std::cerr << "Unable to update index of " << dest << "\n";
+        }
+      }
+      /*
+    } else {
+      s = db_->Put(write_options_, dest, "0");
+      if(!s.ok()) {
+        std::cerr << "Unable to write message to DB: " << s.ToString() << "\n";
+      } else {
+        std::stringstream ss;
+        ss << dest;
+        ss << ":0";
+
+        s = db_->Put(write_options_, ss.str(), msg.SerializeAsString());
+        if(!s.ok()) {
+          std::cerr << "Unable to write message to DB: " << s.ToString() << "\n";
+        }
+      }
+      */
+    } else {
+#ifdef DEBUG
+      std::cout << "No persisted dest at " << dest << "\n";
+#endif
+    }
+  } else {
+    std::cout << "No persistance used\n";
+  }
+}
+
+void Server::flush(Connection* con, std::string dest) {
+  std::string val;
+  leveldb::Status s = db_->Get(read_options_, dest, &val);
+
+  if(!s.ok()) {
+#ifdef DEBUG
+    std::cout << "No message to flush from " << dest << "\n";
+#endif
+    return;
+  }
+
+  int count = atoi(val.c_str());
+
+#ifdef DEBUG
+  std::cout << "Messages to flush: " << count << "\n";
+#endif
+
+  for(int i = 0; i < count; i++) {
+    std::stringstream ss;
+    ss << dest;
+    ss << ":";
+    ss << i;
+
+    s = db_->Get(read_options_, ss.str(), &val);
+    if(s.ok()) {
+      con->write_raw(val);
+      s = db_->Delete(write_options_, ss.str());
+#ifdef DEBUG
+      std::cout << "Flushed message " << i << "\n";
+#endif
+      if(!s.ok()) {
+        std::cerr << "Unable to delete " << ss.str() << "\n";
+      }
+    } else {
+      std::cerr << "Unable to get " << ss.str() << "\n";
+    }
+  }
+
+  s = db_->Put(write_options_, dest, "0");
+  if(!s.ok()) {
+    std::cerr << "Unable to reset " << dest << "\n";
   }
 }
 

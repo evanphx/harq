@@ -6,7 +6,7 @@
 #include <string>
 
 #include "ev++.h"
-#include <leveldb/c.h>
+#include <leveldb/db.h>
 
 class Connection;
 
@@ -15,15 +15,16 @@ namespace wire {
 }
 
 class Server {
-  int db_num_;
   std::string db_path_;
   std::string hostaddr_;
   int port_;
   int fd_;
-  leveldb_options_t* options_;
-  leveldb_readoptions_t* read_options_;
-  leveldb_writeoptions_t* write_options_;
-  leveldb_t **db_;
+
+  leveldb::Options options_;
+  leveldb::ReadOptions read_options_;
+  leveldb::WriteOptions write_options_;
+
+  leveldb::DB* db_;
   ev::dynamic_loop loop_;
   ev::io connection_watcher_;
 
@@ -40,12 +41,14 @@ public:
     connections_.remove(con);
   }
 
-  Server(const char *db_path, const char *hostaddr, int port, int dbn=0);
+  Server(std::string db_path, std::string hostaddr, int port);
   ~Server();
   void start();
   void on_connection(ev::io& w, int revents);
 
+  void reserve(std::string dest);
   void deliver(wire::Message& msg);
+  void flush(Connection* con, std::string dest);
 };
 
 

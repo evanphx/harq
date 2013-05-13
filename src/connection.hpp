@@ -27,7 +27,6 @@ class Connection {
 
 public:
   bool open;
-  int db_index;
   Server *server;
 
   Buffer buffer_;
@@ -58,7 +57,9 @@ public:
   int  do_write();
 
   void handle_message(wire::Message& msg);
-  void deliver(wire::Message& msg);
+  bool deliver(wire::Message& msg);
+
+  void write_raw(std::string str);
 };
 
 #endif

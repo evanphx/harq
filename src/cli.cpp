@@ -81,8 +81,13 @@ end:
       act.set_type(eTap);
       std::cout << "Tapped all messages\n";
     } else {
-      act.set_type(eSubscribe);
-      act.set_payload(argv[1]);
+      if(*argv[1] == '+') {
+        act.set_type(eDurableSubscribe);
+        act.set_payload(argv[1] + 1);
+      } else {
+        act.set_type(eSubscribe);
+        act.set_payload(argv[1]);
+      }
 
       std::cout << "Listening on " << argv[1] << "\n";
     }
