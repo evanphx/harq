@@ -76,7 +76,23 @@ end:
 
     std::cout << "Sent " << size << " bytes to " << argv[1] << "\n";
   } else {
+    bool use_acks = (getenv("REQ_ACK") != 0);
+
+    if(use_acks) {
+      wire::Action act;
+
+      act.set_type(eRequestAck);
+
+      wire::Message msg;
+
+      msg.set_destination("+");
+      msg.set_payload(act.SerializeAsString());
+
+      sock.write(msg);
+    }
+
     wire::Action act;
+
     if(std::string(argv[1]) == "-t") {
       act.set_type(eTap);
       std::cout << "Tapped all messages\n";
@@ -108,6 +124,23 @@ end:
 
       std::cout << "{\n  'destination': '" << in.destination() << "',\n"
                 << "  'payload': '" << in.payload() << "'\n}\n";
+
+      if(use_acks) {
+        if(getenv("ACK_CRASH")) return -1;
+        if(in.has_id()) {
+          act.set_type(eAck);
+          act.set_id(in.id());
+
+          msg.set_destination("+");
+          msg.set_payload(act.SerializeAsString());
+
+          sock.write(msg);
+        } else {
+          std::cerr << "Wanted to ACK a message with no id\n";
+        }
+      }
+
+      if(getenv("ONCE")) break;
     }
   }
 

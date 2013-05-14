@@ -29,6 +29,7 @@ class Server {
   ev::io connection_watcher_;
 
   std::list<Connection*> connections_;
+  uint64_t next_id_;
 
 public:
   int clients_num;
@@ -41,12 +42,16 @@ public:
     connections_.remove(con);
   }
 
+  uint64_t next_id() {
+    return ++next_id_;
+  }
+
   Server(std::string db_path, std::string hostaddr, int port);
   ~Server();
   void start();
   void on_connection(ev::io& w, int revents);
 
-  void reserve(std::string dest);
+  void reserve(std::string dest, bool implicit);
   void deliver(wire::Message& msg);
   void flush(Connection* con, std::string dest);
 };

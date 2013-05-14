@@ -18,8 +18,12 @@
 
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 
+#define FLOW(str) std::cout << "- " << str << "\n"
+
 Connection::Connection(Server *s, int fd)
   : tap_(false)
+  , ack_(false)
+  , closing_(false)
   , sock_(fd)
   , read_w_(s->loop())
   , write_w_(s->loop())
@@ -53,7 +57,23 @@ Connection::~Connection() {
 }
 
 void Connection::start() {
+  FLOW("New Connection");
   read_w_.start(sock_.fd, EV_READ);
+}
+
+void Connection::clear_ack(uint64_t id) {
+  FLOW("Clear Ack");
+  AckMap::iterator i = to_ack_.find(id);
+  if(i != to_ack_.end()) {
+    to_ack_.erase(i);
+#ifdef DEBUG
+    std::cout << "Successfully acked " << id << "\n";
+#endif
+  } else {
+#ifdef DEBUG
+    std::cout << "Unable to find id " << id << " to clear\n";
+#endif
+  }
 }
 
 void Connection::handle_message(wire::Message& msg) {
@@ -62,37 +82,40 @@ void Connection::handle_message(wire::Message& msg) {
   if(dest == std::string("+")) {
     wire::Action act;
 
-#ifdef DEBUG
-    std::cout << "ACTION!\n";
-#endif
+    FLOW("ACTION");
 
     if(act.ParseFromString(msg.payload())) {
       ActionType type = (ActionType)act.type();
       switch(type) {
       case eSubscribe:
-#ifdef DEBUG
-        std::cout << "ACT eSubscribe\n";
-#endif
+        FLOW("ACT eSubscribe");
         subscriptions_.push_back(act.payload());
+        server->flush(this, act.payload());
         break;
       case eTap:
-#ifdef DEBUG
-        std::cout << "ACT eTap\n";
-#endif
+        FLOW("ACT eTap");
         tap_ = true;
         break;
       case eDurableSubscribe:
-#ifdef DEBUG
-        std::cout << "ACT eDurableSubscribe\n";
-#endif
+        FLOW("ACT eDurableSubscribe");
         subscriptions_.push_back(act.payload());
-        server->reserve(act.payload());
+        server->reserve(act.payload(), false);
         // fallthrough to flush also
       case eFlush:
-#ifdef DEBUG
-        std::cout << "ACT eFlush\n";
-#endif
+        FLOW("ACT eFlush");
         server->flush(this, act.payload());
+        break;
+      case eRequestAck:
+        FLOW("ACT eRequestAck");
+        ack_ = true;
+        break;
+      case eAck:
+        FLOW("ACT eAck");
+        if(act.has_id()) {
+          clear_ack(act.id());
+        } else {
+          std::cerr << "Recieved ACK with no id\n";
+        }
         break;
       }
     }
@@ -107,6 +130,8 @@ void Connection::handle_message(wire::Message& msg) {
 }
 
 bool Connection::deliver(wire::Message& msg) {
+  if(closing_) return false;
+
   std::string dest = msg.destination();
 
   if(tap_) {
@@ -118,6 +143,18 @@ bool Connection::deliver(wire::Message& msg) {
       i != subscriptions_.end();
       ++i) {
     if(*i == dest) {
+      if(ack_) {
+        uint64_t id = server->next_id();
+
+        msg.set_id(id);
+
+#ifdef DEBUG
+        std::cout << "Assign message id: " << id << "\n";
+#endif
+
+        to_ack_[id] = msg;
+      }
+
       sock_.write(msg);
       return true;
     }
@@ -142,48 +179,45 @@ bool Connection::do_read(int revents) {
 
   if(recved <= 0) return false;
 
-  if(state == eReadSize) {
+  // Allow us to parse multiple messages in one read
+  for(;;) {
+    if(state == eReadSize) {
+      FLOW("READ SIZE");
+
+      if(buffer_.read_available() < 4) return true;
+
+      int size = buffer_.read_int32();
+
 #ifdef DEBUG
-    std::cout << "READ SIZE\n";
+      std::cout << "msg size=" << size << "\n";
 #endif
 
-    if(buffer_.read_available() < 4) return true;
+      need = size;
 
-    int size = buffer_.read_int32();
+      state = eReadMessage;
+    }
 
 #ifdef DEBUG
-    std::cout << "msg size=" << size << "\n";
+    std::cout << "avail=" << buffer_.read_available() << "\n";
 #endif
 
-    need = size;
+    if(buffer_.read_available() < need) {
+      FLOW("NEED MORE");
+      return true;
+    }
 
-    state = eReadMessage;
+    FLOW("READ MSG");
+
+    wire::Message msg;
+
+    msg.ParseFromArray(buffer_.read_pos(), need);
+
+    buffer_.advance_read(need);
+
+    handle_message(msg);
+
+    state = eReadSize;
   }
-
-#ifdef DEBUG
-  std::cout << "avail=" << buffer_.read_available() << "\n";
-#endif
-
-  if(buffer_.read_available() < need) {
-#ifdef DEBUG
-    std::cout << "NEED MORE\n";
-#endif
-    return true;
-  }
-
-#ifdef DEBUG
-  std::cout << "READ MSG\n";
-#endif
-
-  wire::Message msg;
-
-  msg.ParseFromArray(buffer_.read_pos(), need);
-
-  buffer_.advance_read(need);
-
-  handle_message(msg);
-
-  state = eReadSize;
 
   return true;
 }
@@ -191,6 +225,16 @@ bool Connection::do_read(int revents) {
 void Connection::on_readable(ev::io& w, int revents)
 {
   if(!do_read(revents)) {
+    closing_ = true;
+
+    for(AckMap::iterator i = to_ack_.begin();
+        i != to_ack_.end();
+        ++i) {
+      FLOW("Persisting un-ack'd message");
+      server->reserve(i->second.destination(), true);
+      server->deliver(i->second);
+    }
+
     server->remove_connection(this);
     delete this;
     return;
@@ -207,6 +251,17 @@ void Connection::write_raw(std::string val) {
 #ifdef DEBUG
   std::cout << "Wrote " << w << " bytes to client\n";
 #endif
+  if(ack_) {
+    wire::Message msg;
+    msg.ParseFromString(val);
+
+    if(msg.has_id()) {
+      to_ack_[msg.id()] = msg;
+    } else {
+      std::cerr << "Tried to ack-save a message with no id (flushed)\n";
+    }
+  }
+
 }
 
 int Connection::do_write() {

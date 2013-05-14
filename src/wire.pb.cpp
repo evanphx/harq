@@ -26,6 +26,9 @@ const ::google::protobuf::internal::GeneratedMessageReflection*
 const ::google::protobuf::Descriptor* Action_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   Action_reflection_ = NULL;
+const ::google::protobuf::Descriptor* Queue_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  Queue_reflection_ = NULL;
 
 }  // namespace
 
@@ -37,9 +40,10 @@ void protobuf_AssignDesc_wire_2eproto() {
       "wire.proto");
   GOOGLE_CHECK(file != NULL);
   Message_descriptor_ = file->message_type(0);
-  static const int Message_offsets_[3] = {
+  static const int Message_offsets_[4] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Message, destination_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Message, payload_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Message, id_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Message, flags_),
   };
   Message_reflection_ =
@@ -54,9 +58,10 @@ void protobuf_AssignDesc_wire_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(Message));
   Action_descriptor_ = file->message_type(1);
-  static const int Action_offsets_[2] = {
+  static const int Action_offsets_[3] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Action, type_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Action, payload_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Action, id_),
   };
   Action_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -69,6 +74,22 @@ void protobuf_AssignDesc_wire_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(Action));
+  Queue_descriptor_ = file->message_type(2);
+  static const int Queue_offsets_[2] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Queue, count_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Queue, implicit_),
+  };
+  Queue_reflection_ =
+    new ::google::protobuf::internal::GeneratedMessageReflection(
+      Queue_descriptor_,
+      Queue::default_instance_,
+      Queue_offsets_,
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Queue, _has_bits_[0]),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Queue, _unknown_fields_),
+      -1,
+      ::google::protobuf::DescriptorPool::generated_pool(),
+      ::google::protobuf::MessageFactory::generated_factory(),
+      sizeof(Queue));
 }
 
 namespace {
@@ -85,6 +106,8 @@ void protobuf_RegisterTypes(const ::std::string&) {
     Message_descriptor_, &Message::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
     Action_descriptor_, &Action::default_instance());
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+    Queue_descriptor_, &Queue::default_instance());
 }
 
 }  // namespace
@@ -94,6 +117,8 @@ void protobuf_ShutdownFile_wire_2eproto() {
   delete Message_reflection_;
   delete Action::default_instance_;
   delete Action_reflection_;
+  delete Queue::default_instance_;
+  delete Queue_reflection_;
 }
 
 void protobuf_AddDesc_wire_2eproto() {
@@ -103,16 +128,19 @@ void protobuf_AddDesc_wire_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-    "\n\nwire.proto\022\004wire\">\n\007Message\022\023\n\013destina"
-    "tion\030\001 \002(\t\022\017\n\007payload\030\002 \002(\t\022\r\n\005flags\030\003 \001"
-    "(\005\"\'\n\006Action\022\014\n\004type\030\001 \002(\005\022\017\n\007payload\030\002 "
-    "\001(\t", 123);
+    "\n\nwire.proto\022\004wire\"J\n\007Message\022\023\n\013destina"
+    "tion\030\001 \002(\t\022\017\n\007payload\030\002 \002(\t\022\n\n\002id\030\003 \001(\004\022"
+    "\r\n\005flags\030\004 \001(\r\"3\n\006Action\022\014\n\004type\030\001 \002(\005\022\017"
+    "\n\007payload\030\002 \001(\t\022\n\n\002id\030\003 \001(\004\"(\n\005Queue\022\r\n\005"
+    "count\030\001 \002(\005\022\020\n\010implicit\030\002 \002(\010", 189);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "wire.proto", &protobuf_RegisterTypes);
   Message::default_instance_ = new Message();
   Action::default_instance_ = new Action();
+  Queue::default_instance_ = new Queue();
   Message::default_instance_->InitAsDefaultInstance();
   Action::default_instance_->InitAsDefaultInstance();
+  Queue::default_instance_->InitAsDefaultInstance();
   ::google::protobuf::internal::OnShutdown(&protobuf_ShutdownFile_wire_2eproto);
 }
 
@@ -128,6 +156,7 @@ struct StaticDescriptorInitializer_wire_2eproto {
 #ifndef _MSC_VER
 const int Message::kDestinationFieldNumber;
 const int Message::kPayloadFieldNumber;
+const int Message::kIdFieldNumber;
 const int Message::kFlagsFieldNumber;
 #endif  // !_MSC_VER
 
@@ -149,7 +178,8 @@ void Message::SharedCtor() {
   _cached_size_ = 0;
   destination_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   payload_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
-  flags_ = 0;
+  id_ = GOOGLE_ULONGLONG(0);
+  flags_ = 0u;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -201,7 +231,8 @@ void Message::Clear() {
         payload_->clear();
       }
     }
-    flags_ = 0;
+    id_ = GOOGLE_ULONGLONG(0);
+    flags_ = 0u;
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
@@ -242,17 +273,33 @@ bool Message::MergePartialFromCodedStream(
         } else {
           goto handle_uninterpreted;
         }
-        if (input->ExpectTag(24)) goto parse_flags;
+        if (input->ExpectTag(24)) goto parse_id;
         break;
       }
 
-      // optional int32 flags = 3;
+      // optional uint64 id = 3;
       case 3: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+         parse_id:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &id_)));
+          set_has_id();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(32)) goto parse_flags;
+        break;
+      }
+
+      // optional uint32 flags = 4;
+      case 4: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
          parse_flags:
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
+                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
                  input, &flags_)));
           set_has_flags();
         } else {
@@ -298,9 +345,14 @@ void Message::SerializeWithCachedSizes(
       2, this->payload(), output);
   }
 
-  // optional int32 flags = 3;
+  // optional uint64 id = 3;
+  if (has_id()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(3, this->id(), output);
+  }
+
+  // optional uint32 flags = 4;
   if (has_flags()) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(3, this->flags(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(4, this->flags(), output);
   }
 
   if (!unknown_fields().empty()) {
@@ -331,9 +383,14 @@ void Message::SerializeWithCachedSizes(
         2, this->payload(), target);
   }
 
-  // optional int32 flags = 3;
+  // optional uint64 id = 3;
+  if (has_id()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(3, this->id(), target);
+  }
+
+  // optional uint32 flags = 4;
   if (has_flags()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(3, this->flags(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(4, this->flags(), target);
   }
 
   if (!unknown_fields().empty()) {
@@ -361,10 +418,17 @@ int Message::ByteSize() const {
           this->payload());
     }
 
-    // optional int32 flags = 3;
+    // optional uint64 id = 3;
+    if (has_id()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::UInt64Size(
+          this->id());
+    }
+
+    // optional uint32 flags = 4;
     if (has_flags()) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(
+        ::google::protobuf::internal::WireFormatLite::UInt32Size(
           this->flags());
     }
 
@@ -401,6 +465,9 @@ void Message::MergeFrom(const Message& from) {
     if (from.has_payload()) {
       set_payload(from.payload());
     }
+    if (from.has_id()) {
+      set_id(from.id());
+    }
     if (from.has_flags()) {
       set_flags(from.flags());
     }
@@ -430,6 +497,7 @@ void Message::Swap(Message* other) {
   if (other != this) {
     std::swap(destination_, other->destination_);
     std::swap(payload_, other->payload_);
+    std::swap(id_, other->id_);
     std::swap(flags_, other->flags_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
@@ -451,6 +519,7 @@ void Message::Swap(Message* other) {
 #ifndef _MSC_VER
 const int Action::kTypeFieldNumber;
 const int Action::kPayloadFieldNumber;
+const int Action::kIdFieldNumber;
 #endif  // !_MSC_VER
 
 Action::Action()
@@ -471,6 +540,7 @@ void Action::SharedCtor() {
   _cached_size_ = 0;
   type_ = 0;
   payload_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  id_ = GOOGLE_ULONGLONG(0);
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -515,6 +585,7 @@ void Action::Clear() {
         payload_->clear();
       }
     }
+    id_ = GOOGLE_ULONGLONG(0);
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
@@ -554,6 +625,22 @@ bool Action::MergePartialFromCodedStream(
         } else {
           goto handle_uninterpreted;
         }
+        if (input->ExpectTag(24)) goto parse_id;
+        break;
+      }
+
+      // optional uint64 id = 3;
+      case 3: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+         parse_id:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &id_)));
+          set_has_id();
+        } else {
+          goto handle_uninterpreted;
+        }
         if (input->ExpectAtEnd()) return true;
         break;
       }
@@ -590,6 +677,11 @@ void Action::SerializeWithCachedSizes(
       2, this->payload(), output);
   }
 
+  // optional uint64 id = 3;
+  if (has_id()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(3, this->id(), output);
+  }
+
   if (!unknown_fields().empty()) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         unknown_fields(), output);
@@ -611,6 +703,11 @@ void Action::SerializeWithCachedSizes(
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
         2, this->payload(), target);
+  }
+
+  // optional uint64 id = 3;
+  if (has_id()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(3, this->id(), target);
   }
 
   if (!unknown_fields().empty()) {
@@ -636,6 +733,13 @@ int Action::ByteSize() const {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::StringSize(
           this->payload());
+    }
+
+    // optional uint64 id = 3;
+    if (has_id()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::UInt64Size(
+          this->id());
     }
 
   }
@@ -671,6 +775,9 @@ void Action::MergeFrom(const Action& from) {
     if (from.has_payload()) {
       set_payload(from.payload());
     }
+    if (from.has_id()) {
+      set_id(from.id());
+    }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
 }
@@ -697,6 +804,7 @@ void Action::Swap(Action* other) {
   if (other != this) {
     std::swap(type_, other->type_);
     std::swap(payload_, other->payload_);
+    std::swap(id_, other->id_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);
@@ -708,6 +816,253 @@ void Action::Swap(Action* other) {
   ::google::protobuf::Metadata metadata;
   metadata.descriptor = Action_descriptor_;
   metadata.reflection = Action_reflection_;
+  return metadata;
+}
+
+
+// ===================================================================
+
+#ifndef _MSC_VER
+const int Queue::kCountFieldNumber;
+const int Queue::kImplicitFieldNumber;
+#endif  // !_MSC_VER
+
+Queue::Queue()
+  : ::google::protobuf::Message() {
+  SharedCtor();
+}
+
+void Queue::InitAsDefaultInstance() {
+}
+
+Queue::Queue(const Queue& from)
+  : ::google::protobuf::Message() {
+  SharedCtor();
+  MergeFrom(from);
+}
+
+void Queue::SharedCtor() {
+  _cached_size_ = 0;
+  count_ = 0;
+  implicit_ = false;
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+Queue::~Queue() {
+  SharedDtor();
+}
+
+void Queue::SharedDtor() {
+  if (this != default_instance_) {
+  }
+}
+
+void Queue::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* Queue::descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return Queue_descriptor_;
+}
+
+const Queue& Queue::default_instance() {
+  if (default_instance_ == NULL) protobuf_AddDesc_wire_2eproto();
+  return *default_instance_;
+}
+
+Queue* Queue::default_instance_ = NULL;
+
+Queue* Queue::New() const {
+  return new Queue;
+}
+
+void Queue::Clear() {
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    count_ = 0;
+    implicit_ = false;
+  }
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+  mutable_unknown_fields()->Clear();
+}
+
+bool Queue::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+  ::google::protobuf::uint32 tag;
+  while ((tag = input->ReadTag()) != 0) {
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // required int32 count = 1;
+      case 1: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
+                 input, &count_)));
+          set_has_count();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(16)) goto parse_implicit;
+        break;
+      }
+
+      // required bool implicit = 2;
+      case 2: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+         parse_implicit:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
+                 input, &implicit_)));
+          set_has_implicit();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectAtEnd()) return true;
+        break;
+      }
+
+      default: {
+      handle_uninterpreted:
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          return true;
+        }
+        DO_(::google::protobuf::internal::WireFormat::SkipField(
+              input, tag, mutable_unknown_fields()));
+        break;
+      }
+    }
+  }
+  return true;
+#undef DO_
+}
+
+void Queue::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // required int32 count = 1;
+  if (has_count()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt32(1, this->count(), output);
+  }
+
+  // required bool implicit = 2;
+  if (has_implicit()) {
+    ::google::protobuf::internal::WireFormatLite::WriteBool(2, this->implicit(), output);
+  }
+
+  if (!unknown_fields().empty()) {
+    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
+        unknown_fields(), output);
+  }
+}
+
+::google::protobuf::uint8* Queue::SerializeWithCachedSizesToArray(
+    ::google::protobuf::uint8* target) const {
+  // required int32 count = 1;
+  if (has_count()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(1, this->count(), target);
+  }
+
+  // required bool implicit = 2;
+  if (has_implicit()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(2, this->implicit(), target);
+  }
+
+  if (!unknown_fields().empty()) {
+    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
+        unknown_fields(), target);
+  }
+  return target;
+}
+
+int Queue::ByteSize() const {
+  int total_size = 0;
+
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    // required int32 count = 1;
+    if (has_count()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::Int32Size(
+          this->count());
+    }
+
+    // required bool implicit = 2;
+    if (has_implicit()) {
+      total_size += 1 + 1;
+    }
+
+  }
+  if (!unknown_fields().empty()) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        unknown_fields());
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void Queue::MergeFrom(const ::google::protobuf::Message& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  const Queue* source =
+    ::google::protobuf::internal::dynamic_cast_if_available<const Queue*>(
+      &from);
+  if (source == NULL) {
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+    MergeFrom(*source);
+  }
+}
+
+void Queue::MergeFrom(const Queue& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_count()) {
+      set_count(from.count());
+    }
+    if (from.has_implicit()) {
+      set_implicit(from.implicit());
+    }
+  }
+  mutable_unknown_fields()->MergeFrom(from.unknown_fields());
+}
+
+void Queue::CopyFrom(const ::google::protobuf::Message& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void Queue::CopyFrom(const Queue& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool Queue::IsInitialized() const {
+  if ((_has_bits_[0] & 0x00000003) != 0x00000003) return false;
+
+  return true;
+}
+
+void Queue::Swap(Queue* other) {
+  if (other != this) {
+    std::swap(count_, other->count_);
+    std::swap(implicit_, other->implicit_);
+    std::swap(_has_bits_[0], other->_has_bits_[0]);
+    _unknown_fields_.Swap(&other->_unknown_fields_);
+    std::swap(_cached_size_, other->_cached_size_);
+  }
+}
+
+::google::protobuf::Metadata Queue::GetMetadata() const {
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = Queue_descriptor_;
+  metadata.reflection = Queue_reflection_;
   return metadata;
 }
 

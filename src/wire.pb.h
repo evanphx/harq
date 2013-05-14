@@ -35,6 +35,7 @@ void protobuf_ShutdownFile_wire_2eproto();
 
 class Message;
 class Action;
+class Queue;
 
 // ===================================================================
 
@@ -116,12 +117,19 @@ class Message : public ::google::protobuf::Message {
   inline ::std::string* release_payload();
   inline void set_allocated_payload(::std::string* payload);
 
-  // optional int32 flags = 3;
+  // optional uint64 id = 3;
+  inline bool has_id() const;
+  inline void clear_id();
+  static const int kIdFieldNumber = 3;
+  inline ::google::protobuf::uint64 id() const;
+  inline void set_id(::google::protobuf::uint64 value);
+
+  // optional uint32 flags = 4;
   inline bool has_flags() const;
   inline void clear_flags();
-  static const int kFlagsFieldNumber = 3;
-  inline ::google::protobuf::int32 flags() const;
-  inline void set_flags(::google::protobuf::int32 value);
+  static const int kFlagsFieldNumber = 4;
+  inline ::google::protobuf::uint32 flags() const;
+  inline void set_flags(::google::protobuf::uint32 value);
 
   // @@protoc_insertion_point(class_scope:wire.Message)
  private:
@@ -129,6 +137,8 @@ class Message : public ::google::protobuf::Message {
   inline void clear_has_destination();
   inline void set_has_payload();
   inline void clear_has_payload();
+  inline void set_has_id();
+  inline void clear_has_id();
   inline void set_has_flags();
   inline void clear_has_flags();
 
@@ -136,10 +146,11 @@ class Message : public ::google::protobuf::Message {
 
   ::std::string* destination_;
   ::std::string* payload_;
-  ::google::protobuf::int32 flags_;
+  ::google::protobuf::uint64 id_;
+  ::google::protobuf::uint32 flags_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
 
   friend void  protobuf_AddDesc_wire_2eproto();
   friend void protobuf_AssignDesc_wire_2eproto();
@@ -223,17 +234,119 @@ class Action : public ::google::protobuf::Message {
   inline ::std::string* release_payload();
   inline void set_allocated_payload(::std::string* payload);
 
+  // optional uint64 id = 3;
+  inline bool has_id() const;
+  inline void clear_id();
+  static const int kIdFieldNumber = 3;
+  inline ::google::protobuf::uint64 id() const;
+  inline void set_id(::google::protobuf::uint64 value);
+
   // @@protoc_insertion_point(class_scope:wire.Action)
  private:
   inline void set_has_type();
   inline void clear_has_type();
   inline void set_has_payload();
   inline void clear_has_payload();
+  inline void set_has_id();
+  inline void clear_has_id();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::std::string* payload_;
+  ::google::protobuf::uint64 id_;
   ::google::protobuf::int32 type_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+
+  friend void  protobuf_AddDesc_wire_2eproto();
+  friend void protobuf_AssignDesc_wire_2eproto();
+  friend void protobuf_ShutdownFile_wire_2eproto();
+
+  void InitAsDefaultInstance();
+  static Action* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class Queue : public ::google::protobuf::Message {
+ public:
+  Queue();
+  virtual ~Queue();
+
+  Queue(const Queue& from);
+
+  inline Queue& operator=(const Queue& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const Queue& default_instance();
+
+  void Swap(Queue* other);
+
+  // implements Message ----------------------------------------------
+
+  Queue* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const Queue& from);
+  void MergeFrom(const Queue& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required int32 count = 1;
+  inline bool has_count() const;
+  inline void clear_count();
+  static const int kCountFieldNumber = 1;
+  inline ::google::protobuf::int32 count() const;
+  inline void set_count(::google::protobuf::int32 value);
+
+  // required bool implicit = 2;
+  inline bool has_implicit() const;
+  inline void clear_implicit();
+  static const int kImplicitFieldNumber = 2;
+  inline bool implicit() const;
+  inline void set_implicit(bool value);
+
+  // @@protoc_insertion_point(class_scope:wire.Queue)
+ private:
+  inline void set_has_count();
+  inline void clear_has_count();
+  inline void set_has_implicit();
+  inline void clear_has_implicit();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::google::protobuf::int32 count_;
+  bool implicit_;
 
   mutable int _cached_size_;
   ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
@@ -243,7 +356,7 @@ class Action : public ::google::protobuf::Message {
   friend void protobuf_ShutdownFile_wire_2eproto();
 
   void InitAsDefaultInstance();
-  static Action* default_instance_;
+  static Queue* default_instance_;
 };
 // ===================================================================
 
@@ -392,24 +505,46 @@ inline void Message::set_allocated_payload(::std::string* payload) {
   }
 }
 
-// optional int32 flags = 3;
-inline bool Message::has_flags() const {
+// optional uint64 id = 3;
+inline bool Message::has_id() const {
   return (_has_bits_[0] & 0x00000004u) != 0;
 }
-inline void Message::set_has_flags() {
+inline void Message::set_has_id() {
   _has_bits_[0] |= 0x00000004u;
 }
-inline void Message::clear_has_flags() {
+inline void Message::clear_has_id() {
   _has_bits_[0] &= ~0x00000004u;
 }
+inline void Message::clear_id() {
+  id_ = GOOGLE_ULONGLONG(0);
+  clear_has_id();
+}
+inline ::google::protobuf::uint64 Message::id() const {
+  return id_;
+}
+inline void Message::set_id(::google::protobuf::uint64 value) {
+  set_has_id();
+  id_ = value;
+}
+
+// optional uint32 flags = 4;
+inline bool Message::has_flags() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+inline void Message::set_has_flags() {
+  _has_bits_[0] |= 0x00000008u;
+}
+inline void Message::clear_has_flags() {
+  _has_bits_[0] &= ~0x00000008u;
+}
 inline void Message::clear_flags() {
-  flags_ = 0;
+  flags_ = 0u;
   clear_has_flags();
 }
-inline ::google::protobuf::int32 Message::flags() const {
+inline ::google::protobuf::uint32 Message::flags() const {
   return flags_;
 }
-inline void Message::set_flags(::google::protobuf::int32 value) {
+inline void Message::set_flags(::google::protobuf::uint32 value) {
   set_has_flags();
   flags_ = value;
 }
@@ -508,6 +643,76 @@ inline void Action::set_allocated_payload(::std::string* payload) {
     clear_has_payload();
     payload_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   }
+}
+
+// optional uint64 id = 3;
+inline bool Action::has_id() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void Action::set_has_id() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void Action::clear_has_id() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void Action::clear_id() {
+  id_ = GOOGLE_ULONGLONG(0);
+  clear_has_id();
+}
+inline ::google::protobuf::uint64 Action::id() const {
+  return id_;
+}
+inline void Action::set_id(::google::protobuf::uint64 value) {
+  set_has_id();
+  id_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// Queue
+
+// required int32 count = 1;
+inline bool Queue::has_count() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void Queue::set_has_count() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void Queue::clear_has_count() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void Queue::clear_count() {
+  count_ = 0;
+  clear_has_count();
+}
+inline ::google::protobuf::int32 Queue::count() const {
+  return count_;
+}
+inline void Queue::set_count(::google::protobuf::int32 value) {
+  set_has_count();
+  count_ = value;
+}
+
+// required bool implicit = 2;
+inline bool Queue::has_implicit() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void Queue::set_has_implicit() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void Queue::clear_has_implicit() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void Queue::clear_implicit() {
+  implicit_ = false;
+  clear_has_implicit();
+}
+inline bool Queue::implicit() const {
+  return implicit_;
+}
+inline void Queue::set_implicit(bool value) {
+  set_has_implicit();
+  implicit_ = value;
 }
 
 

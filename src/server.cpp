@@ -18,6 +18,8 @@
 #include <iostream>
 #include <sstream>
 
+#include "leveldb/write_batch.h"
+
 #include "util.hpp"
 #include "server.hpp"
 #include "connection.hpp"
@@ -43,6 +45,7 @@ Server::Server(std::string db_path, std::string hostaddr, int port)
     , fd_(-1)
     , loop_(EVBACKEND)
     , connection_watcher_(loop_)
+    , next_id_(0)
     , clients_num(0)
 {
   options_.create_if_missing = true;
@@ -58,7 +61,6 @@ Server::~Server() {
   delete db_;
   close(fd_);
 }
-
 
 void Server::start() {    
   if((fd_ = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
@@ -90,7 +92,7 @@ void Server::start() {
 
   if(!hostaddr_.empty()) {
     addr.sin_addr.s_addr = inet_addr(hostaddr_.c_str());
-    if(addr.sin_addr.s_addr==INADDR_NONE){
+    if(addr.sin_addr.s_addr == INADDR_NONE){
       printf("Bad address(%s) to listen\n",hostaddr_.c_str());
       exit(1);
     }
@@ -144,17 +146,38 @@ void Server::on_connection(ev::io& w, int revents) {
   connection->start();
 }
 
-void Server::reserve(std::string dest) {
+void Server::reserve(std::string dest, bool implicit) {
   std::string val;
   leveldb::Status s = db_->Get(read_options_, dest, &val);
 
   if(s.ok()) {
+    // Upgrade an implicit persistance to an explicit one.
+    if(!implicit) {
+      wire::Queue q;
+      q.ParseFromString(val);
+
+      if(!q.implicit()) {
+        q.set_implicit(implicit);
+        s = db_->Put(write_options_, dest, q.SerializeAsString());
+
+        if(!s.ok()) {
+          std::cerr << "Unable to upgrade queue to explicit: " << dest << "\n";
+        } else {
+#ifdef DEBUG
+          std::cout << "Upgraded implicit persistance to explicit.\n";
+#endif
+        }
+      }
+    }
 #ifdef DEBUG
     std::cout << "Already reserved " << dest << "\n";
 #endif
-    // Already reserved, good to go.
   } else {
-    s = db_->Put(write_options_, dest, "0");
+    wire::Queue q;
+    q.set_count(0);
+    q.set_implicit(implicit);
+
+    s = db_->Put(write_options_, dest, q.SerializeAsString());
 #ifdef DEBUG
     std::cout << "Reserved " << dest << "\n";
 #endif
@@ -181,9 +204,13 @@ void Server::deliver(wire::Message& msg) {
 
   if(!consumed) {
     std::string val;
+    wire::Queue q;
     leveldb::Status s = db_->Get(read_options_, dest, &val);
+
     if(s.ok()) {
-      int c = atoi(val.c_str());
+      q.ParseFromString(val);
+
+      int c = q.count();
       std::stringstream ss;
       ss << dest;
       ss << ":";
@@ -194,23 +221,21 @@ void Server::deliver(wire::Message& msg) {
                 << " (" << c  << ")\n";
 #endif
 
-      s = db_->Put(write_options_, ss.str(), msg.SerializeAsString());
+      c++;
+      q.set_count(c);
+
+      leveldb::WriteBatch batch;
+      batch.Put(ss.str(), msg.SerializeAsString());
+      batch.Put(dest, q.SerializeAsString());
+
+      s = db_->Write(write_options_, &batch);
+
       if(!s.ok()) {
         std::cerr << "Unable to write message to DB: " << s.ToString() << "\n";
       } else {
-        c++;
-        std::stringstream s2;
-        s2 << c;
-
-        s = db_->Put(write_options_, dest, s2.str());
-
-        if(s.ok()) {
 #ifdef DEBUG
-          std::cout << "Updated index of " << dest << " to " << c << "\n";
+        std::cout << "Updated index of " << dest << " to " << c << "\n";
 #endif
-        } else {
-          std::cerr << "Unable to update index of " << dest << "\n";
-        }
       }
       /*
     } else {
@@ -249,7 +274,10 @@ void Server::flush(Connection* con, std::string dest) {
     return;
   }
 
-  int count = atoi(val.c_str());
+  wire::Queue q;
+  q.ParseFromString(val);
+
+  int count = q.count();
 
 #ifdef DEBUG
   std::cout << "Messages to flush: " << count << "\n";
@@ -276,7 +304,16 @@ void Server::flush(Connection* con, std::string dest) {
     }
   }
 
-  s = db_->Put(write_options_, dest, "0");
+  if(q.implicit()) {
+    s = db_->Delete(write_options_, dest);
+#ifdef DEBUG
+    std::cout << "Deleted implicit queue: " << dest << "\n";
+#endif
+  } else {
+    q.set_count(0);
+    s = db_->Put(write_options_, dest, q.SerializeAsString());
+  }
+
   if(!s.ok()) {
     std::cerr << "Unable to reset " << dest << "\n";
   }

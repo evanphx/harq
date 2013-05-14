@@ -4,6 +4,7 @@
 #include <vector>
 #include <list>
 #include <string>
+#include <map>
 
 #include <ev.h>
 #include <leveldb/c.h>
@@ -21,9 +22,14 @@ namespace wire {
 class Connection {
   std::list<std::string> subscriptions_;
   bool tap_;
+  bool ack_;
+  bool closing_;
   Socket sock_;
   ev::io read_w_;
   ev::io write_w_;
+
+  typedef std::map<uint64_t, wire::Message> AckMap;
+  AckMap to_ack_;
 
 public:
   bool open;
@@ -60,6 +66,8 @@ public:
   bool deliver(wire::Message& msg);
 
   void write_raw(std::string str);
+
+  void clear_ack(uint64_t id);
 };
 
 #endif
