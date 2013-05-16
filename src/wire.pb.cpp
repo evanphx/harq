@@ -40,11 +40,12 @@ void protobuf_AssignDesc_wire_2eproto() {
       "wire.proto");
   GOOGLE_CHECK(file != NULL);
   Message_descriptor_ = file->message_type(0);
-  static const int Message_offsets_[4] = {
+  static const int Message_offsets_[5] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Message, destination_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Message, payload_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Message, id_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Message, flags_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Message, confirm_id_),
   };
   Message_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -128,11 +129,12 @@ void protobuf_AddDesc_wire_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-    "\n\nwire.proto\022\004wire\"J\n\007Message\022\023\n\013destina"
+    "\n\nwire.proto\022\004wire\"^\n\007Message\022\023\n\013destina"
     "tion\030\001 \002(\t\022\017\n\007payload\030\002 \002(\t\022\n\n\002id\030\003 \001(\004\022"
-    "\r\n\005flags\030\004 \001(\r\"3\n\006Action\022\014\n\004type\030\001 \002(\005\022\017"
-    "\n\007payload\030\002 \001(\t\022\n\n\002id\030\003 \001(\004\"(\n\005Queue\022\r\n\005"
-    "count\030\001 \002(\005\022\020\n\010implicit\030\002 \002(\010", 189);
+    "\r\n\005flags\030\004 \001(\r\022\022\n\nconfirm_id\030\005 \001(\004\"3\n\006Ac"
+    "tion\022\014\n\004type\030\001 \002(\005\022\017\n\007payload\030\002 \001(\t\022\n\n\002i"
+    "d\030\003 \001(\004\"(\n\005Queue\022\r\n\005count\030\001 \002(\005\022\020\n\010impli"
+    "cit\030\002 \002(\010", 209);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "wire.proto", &protobuf_RegisterTypes);
   Message::default_instance_ = new Message();
@@ -158,6 +160,7 @@ const int Message::kDestinationFieldNumber;
 const int Message::kPayloadFieldNumber;
 const int Message::kIdFieldNumber;
 const int Message::kFlagsFieldNumber;
+const int Message::kConfirmIdFieldNumber;
 #endif  // !_MSC_VER
 
 Message::Message()
@@ -180,6 +183,7 @@ void Message::SharedCtor() {
   payload_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   id_ = GOOGLE_ULONGLONG(0);
   flags_ = 0u;
+  confirm_id_ = GOOGLE_ULONGLONG(0);
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -233,6 +237,7 @@ void Message::Clear() {
     }
     id_ = GOOGLE_ULONGLONG(0);
     flags_ = 0u;
+    confirm_id_ = GOOGLE_ULONGLONG(0);
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
@@ -305,6 +310,22 @@ bool Message::MergePartialFromCodedStream(
         } else {
           goto handle_uninterpreted;
         }
+        if (input->ExpectTag(40)) goto parse_confirm_id;
+        break;
+      }
+
+      // optional uint64 confirm_id = 5;
+      case 5: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+         parse_confirm_id:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &confirm_id_)));
+          set_has_confirm_id();
+        } else {
+          goto handle_uninterpreted;
+        }
         if (input->ExpectAtEnd()) return true;
         break;
       }
@@ -355,6 +376,11 @@ void Message::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteUInt32(4, this->flags(), output);
   }
 
+  // optional uint64 confirm_id = 5;
+  if (has_confirm_id()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(5, this->confirm_id(), output);
+  }
+
   if (!unknown_fields().empty()) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         unknown_fields(), output);
@@ -391,6 +417,11 @@ void Message::SerializeWithCachedSizes(
   // optional uint32 flags = 4;
   if (has_flags()) {
     target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(4, this->flags(), target);
+  }
+
+  // optional uint64 confirm_id = 5;
+  if (has_confirm_id()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(5, this->confirm_id(), target);
   }
 
   if (!unknown_fields().empty()) {
@@ -432,6 +463,13 @@ int Message::ByteSize() const {
           this->flags());
     }
 
+    // optional uint64 confirm_id = 5;
+    if (has_confirm_id()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::UInt64Size(
+          this->confirm_id());
+    }
+
   }
   if (!unknown_fields().empty()) {
     total_size +=
@@ -471,6 +509,9 @@ void Message::MergeFrom(const Message& from) {
     if (from.has_flags()) {
       set_flags(from.flags());
     }
+    if (from.has_confirm_id()) {
+      set_confirm_id(from.confirm_id());
+    }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
 }
@@ -499,6 +540,7 @@ void Message::Swap(Message* other) {
     std::swap(payload_, other->payload_);
     std::swap(id_, other->id_);
     std::swap(flags_, other->flags_);
+    std::swap(confirm_id_, other->confirm_id_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);

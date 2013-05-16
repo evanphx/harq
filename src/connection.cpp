@@ -23,6 +23,7 @@
 Connection::Connection(Server *s, int fd)
   : tap_(false)
   , ack_(false)
+  , confirm_(false)
   , closing_(false)
   , sock_(fd)
   , read_w_(s->loop())
@@ -117,6 +118,14 @@ void Connection::handle_message(wire::Message& msg) {
           std::cerr << "Recieved ACK with no id\n";
         }
         break;
+      case eRequestConfirm:
+        FLOW("ACT eRequestConfirm");
+        confirm_ = true;
+        break;
+      case eConfirm:
+        FLOW("ACT eConfirm");
+        std::cerr << "Server recieved Confirm action mistakenly\n";
+        break;
       }
     }
   } else {
@@ -126,6 +135,25 @@ void Connection::handle_message(wire::Message& msg) {
 #endif
 
     server->deliver(msg);
+
+    if(confirm_) {
+      // If the sender didn't specify a confirm id, it will
+      // be 0 by default, which is fine. They can sort out what that means
+      // on their own.
+      wire::Action oa;
+      oa.set_type(eConfirm);
+      oa.set_id(msg.confirm_id());
+
+      wire::Message om;
+
+      om.set_destination("+");
+      om.set_payload(oa.SerializeAsString());
+
+      sock_.write(om);
+#ifdef DEBUG
+      std::cout << "Sent confirmation of message id " << msg.confirm_id() << "\n";
+#endif
+    }
   }
 }
 

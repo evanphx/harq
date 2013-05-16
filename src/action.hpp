@@ -7,7 +7,9 @@ enum ActionType {
   eDurableSubscribe,
   eFlush,
   eRequestAck,
-  eAck
+  eAck,
+  eRequestConfirm,
+  eConfirm
 };
 
 #endif

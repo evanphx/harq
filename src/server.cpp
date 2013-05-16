@@ -24,6 +24,8 @@
 #include "server.hpp"
 #include "connection.hpp"
 
+#include "flags.hpp"
+
 #include "wire.pb.h"
 
 #define EVBACKEND EVFLAG_AUTO
@@ -157,7 +159,7 @@ void Server::reserve(std::string dest, bool implicit) {
       q.ParseFromString(val);
 
       if(!q.implicit()) {
-        q.set_implicit(implicit);
+        q.set_implicit(false);
         s = db_->Put(write_options_, dest, q.SerializeAsString());
 
         if(!s.ok()) {
@@ -254,9 +256,19 @@ void Server::deliver(wire::Message& msg) {
       }
       */
     } else {
+      if(msg.flags() | eQueue) {
 #ifdef DEBUG
-      std::cout << "No persisted dest at " << dest << "\n";
+        std::cout << "Queue'd transient message at " << dest << "\n";
 #endif
+        wire::Message* mp = new wire::Message(msg);
+        mp->set_id(next_id());
+
+        transient_[dest].push_back(mp);
+      } else {
+#ifdef DEBUG
+        std::cout << "No transient or persisted dest at " << dest << "\n";
+#endif
+      }
     }
   } else {
     std::cout << "No persistance used\n";
@@ -264,6 +276,21 @@ void Server::deliver(wire::Message& msg) {
 }
 
 void Server::flush(Connection* con, std::string dest) {
+  Queues::iterator i = transient_.find(dest);
+
+  if(i != transient_.end() && i->second.size() > 0) {
+    for(Queue::iterator j = i->second.begin();
+        j != i->second.end();
+        ++j) {
+      con->write(**j);
+      delete *j;
+    }
+
+    i->second.clear();
+
+    return;
+  }
+
   std::string val;
   leveldb::Status s = db_->Get(read_options_, dest, &val);
 

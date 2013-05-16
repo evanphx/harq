@@ -23,6 +23,7 @@ class Connection {
   std::list<std::string> subscriptions_;
   bool tap_;
   bool ack_;
+  bool confirm_;
   bool closing_;
   Socket sock_;
   ev::io read_w_;
@@ -66,6 +67,10 @@ public:
   bool deliver(wire::Message& msg);
 
   void write_raw(std::string str);
+
+  int write(wire::Message& msg) {
+    return sock_.write(msg);
+  }
 
   void clear_ack(uint64_t id);
 };

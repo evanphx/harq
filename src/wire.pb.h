@@ -131,6 +131,13 @@ class Message : public ::google::protobuf::Message {
   inline ::google::protobuf::uint32 flags() const;
   inline void set_flags(::google::protobuf::uint32 value);
 
+  // optional uint64 confirm_id = 5;
+  inline bool has_confirm_id() const;
+  inline void clear_confirm_id();
+  static const int kConfirmIdFieldNumber = 5;
+  inline ::google::protobuf::uint64 confirm_id() const;
+  inline void set_confirm_id(::google::protobuf::uint64 value);
+
   // @@protoc_insertion_point(class_scope:wire.Message)
  private:
   inline void set_has_destination();
@@ -141,16 +148,19 @@ class Message : public ::google::protobuf::Message {
   inline void clear_has_id();
   inline void set_has_flags();
   inline void clear_has_flags();
+  inline void set_has_confirm_id();
+  inline void clear_has_confirm_id();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::std::string* destination_;
   ::std::string* payload_;
   ::google::protobuf::uint64 id_;
+  ::google::protobuf::uint64 confirm_id_;
   ::google::protobuf::uint32 flags_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
 
   friend void  protobuf_AddDesc_wire_2eproto();
   friend void protobuf_AssignDesc_wire_2eproto();
@@ -547,6 +557,28 @@ inline ::google::protobuf::uint32 Message::flags() const {
 inline void Message::set_flags(::google::protobuf::uint32 value) {
   set_has_flags();
   flags_ = value;
+}
+
+// optional uint64 confirm_id = 5;
+inline bool Message::has_confirm_id() const {
+  return (_has_bits_[0] & 0x00000010u) != 0;
+}
+inline void Message::set_has_confirm_id() {
+  _has_bits_[0] |= 0x00000010u;
+}
+inline void Message::clear_has_confirm_id() {
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline void Message::clear_confirm_id() {
+  confirm_id_ = GOOGLE_ULONGLONG(0);
+  clear_has_confirm_id();
+}
+inline ::google::protobuf::uint64 Message::confirm_id() const {
+  return confirm_id_;
+}
+inline void Message::set_confirm_id(::google::protobuf::uint64 value) {
+  set_has_confirm_id();
+  confirm_id_ = value;
 }
 
 // -------------------------------------------------------------------

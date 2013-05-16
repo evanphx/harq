@@ -19,6 +19,7 @@
 #include "server.hpp"
 #include "connection.hpp"
 #include "action.hpp"
+#include "flags.hpp"
 
 #include "wire.pb.h"
 
@@ -69,12 +70,44 @@ end:
   if(argc == 3) {
     wire::Message msg;
 
+    if(getenv("CONFIRM")) {
+
+      wire::Action act;
+      act.set_type(eRequestConfirm);
+
+      msg.set_destination("+");
+      msg.set_payload(act.SerializeAsString());
+      sock.write(msg);
+
+      msg.set_confirm_id(7);
+    }
+
     msg.set_destination(argv[1]);
     msg.set_payload(argv[2]);
+
+    if(getenv("QUEUE")) {
+      msg.set_flags(eQueue);
+    }
 
     int size = sock.write(msg);
 
     std::cout << "Sent " << size << " bytes to " << argv[1] << "\n";
+
+    if(getenv("CONFIRM")) {
+      wire::Message in;
+      sock.read(in);
+
+      if(in.destination() == "+") {
+        wire::Action act;
+
+        act.ParseFromString(in.payload());
+
+        if(act.id() == 7) {
+          std::cout << "Confirmed message received\n";
+        }
+      }
+    }
+
   } else {
     bool use_acks = (getenv("REQ_ACK") != 0);
 

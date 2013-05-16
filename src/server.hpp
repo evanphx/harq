@@ -4,6 +4,7 @@
 #include <vector>
 #include <list>
 #include <string>
+#include <map>
 
 #include "ev++.h"
 #include <leveldb/db.h>
@@ -30,6 +31,10 @@ class Server {
 
   std::list<Connection*> connections_;
   uint64_t next_id_;
+
+  typedef std::list<wire::Message*> Queue;
+  typedef std::map<std::string, Queue> Queues;
+  Queues transient_;
 
 public:
   int clients_num;
