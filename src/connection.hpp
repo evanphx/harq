@@ -6,7 +6,7 @@
 #include <string>
 #include <map>
 
-#include <ev.h>
+#include <ev++.h>
 #include <leveldb/c.h>
 
 #include "qadmus.hpp"

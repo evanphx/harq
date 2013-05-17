@@ -91,6 +91,7 @@ void Connection::handle_message(wire::Message& msg) {
       case eSubscribe:
         FLOW("ACT eSubscribe");
         subscriptions_.push_back(act.payload());
+        server->subscribe(this, act.payload());
         server->flush(this, act.payload());
         break;
       case eTap:
@@ -100,6 +101,7 @@ void Connection::handle_message(wire::Message& msg) {
       case eDurableSubscribe:
         FLOW("ACT eDurableSubscribe");
         subscriptions_.push_back(act.payload());
+        server->subscribe(this, act.payload(), true);
         server->reserve(act.payload(), false);
         // fallthrough to flush also
       case eFlush:
@@ -261,6 +263,12 @@ void Connection::on_readable(ev::io& w, int revents)
       FLOW("Persisting un-ack'd message");
       server->reserve(i->second.destination(), true);
       server->deliver(i->second);
+    }
+
+    for(std::list<std::string>::iterator i = subscriptions_.begin();
+        i != subscriptions_.end();
+        ++i) {
+      server->queue(*i).unsubscribe(this);
     }
 
     server->remove_connection(this);

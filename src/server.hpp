@@ -8,6 +8,7 @@
 
 #include "ev++.h"
 #include <leveldb/db.h>
+#include "queue.hpp"
 
 class Connection;
 
@@ -32,9 +33,8 @@ class Server {
   std::list<Connection*> connections_;
   uint64_t next_id_;
 
-  typedef std::list<wire::Message*> Queue;
-  typedef std::map<std::string, Queue> Queues;
-  Queues transient_;
+  typedef std::map<std::string, Queue*> Queues;
+  Queues queues_;
 
 public:
   int clients_num;
@@ -51,6 +51,17 @@ public:
     return ++next_id_;
   }
 
+  Queue& queue(std::string name) {
+    Queues::iterator i = queues_.find(name);
+    if(i != queues_.end()) return *i->second;
+
+    Queue* q = new Queue(this, name);
+
+    queues_[name] = q;
+
+    return *q;
+  }
+
   Server(std::string db_path, std::string hostaddr, int port);
   ~Server();
   void start();
@@ -58,6 +69,8 @@ public:
 
   void reserve(std::string dest, bool implicit);
   void deliver(wire::Message& msg);
+
+  void subscribe(Connection* con, std::string dest, bool durable=false);
   void flush(Connection* con, std::string dest);
 };
 
