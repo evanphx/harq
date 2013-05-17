@@ -167,6 +167,8 @@ end:
           msg.set_destination("+");
           msg.set_payload(act.SerializeAsString());
 
+          std::cout << "ACK'd message " << act.id() << "\n";
+
           sock.write(msg);
         } else {
           std::cerr << "Wanted to ACK a message with no id\n";

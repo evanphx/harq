@@ -6,9 +6,13 @@
 #include <string>
 #include <map>
 
+#include <iostream>
+
 #include "ev++.h"
 #include <leveldb/db.h>
 #include "queue.hpp"
+
+#include "wire.pb.h"
 
 class Connection;
 
@@ -49,6 +53,15 @@ public:
 
   uint64_t next_id() {
     return ++next_id_;
+  }
+
+  uint64_t assign_id(wire::Message& msg) {
+    uint64_t id = next_id();
+    msg.set_id(id);
+#ifdef DEBUG
+    std::cout << "Assigned message id " << id << "\n";
+#endif
+    return id;
   }
 
   Queue& queue(std::string name) {

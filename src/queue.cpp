@@ -132,7 +132,6 @@ bool Queue::deliver(wire::Message& msg, leveldb::DB* db) {
 #ifdef DEBUG
         std::cout << "Queue'd transient message at " << name_ << "\n";
 #endif
-        if(!msg.has_id()) msg.set_id(server_->next_id());
         queue(msg);
       } else {
 #ifdef DEBUG

@@ -169,28 +169,12 @@ bool Connection::deliver(wire::Message& msg) {
     return false;
   }
 
-  for(std::list<std::string>::iterator i = subscriptions_.begin();
-      i != subscriptions_.end();
-      ++i) {
-    if(*i == dest) {
-      if(ack_) {
-        uint64_t id = server->next_id();
-
-        msg.set_id(id);
-
-#ifdef DEBUG
-        std::cout << "Assign message id: " << id << "\n";
-#endif
-
-        to_ack_[id] = msg;
-      }
-
-      sock_.write(msg);
-      return true;
-    }
+  if(ack_) {
+    to_ack_[server->assign_id(msg)] = msg;
   }
 
-  return false;
+  sock_.write(msg);
+  return true;
 }
 
 bool Connection::do_read(int revents) {
@@ -283,20 +267,20 @@ void Connection::on_readable(ev::io& w, int revents)
 }
 
 void Connection::write_raw(std::string val) {
-  int w = sock_.write_raw(val);
-#ifdef DEBUG
-  std::cout << "Wrote " << w << " bytes to client\n";
-#endif
   if(ack_) {
     wire::Message msg;
     msg.ParseFromString(val);
 
-    if(msg.has_id()) {
-      to_ack_[msg.id()] = msg;
-    } else {
-      std::cerr << "Tried to ack-save a message with no id (flushed)\n";
-    }
+    to_ack_[server->assign_id(msg)] = msg;
+
+    val = msg.SerializeAsString();
   }
+
+  int w = sock_.write_raw(val);
+
+#ifdef DEBUG
+  std::cout << "Wrote " << w << " bytes to client\n";
+#endif
 
 }
 
