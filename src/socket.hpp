@@ -3,11 +3,16 @@
 
 #include <string>
 
+#include "write_set.hpp"
+
 namespace wire {
   class Message;
 }
 
-struct Socket {
+class Socket {
+  WriteSet writes_;
+
+public:
   int fd;
 
   Socket(int fd)
@@ -15,10 +20,16 @@ struct Socket {
   {}
 
   void set_nonblock();
-  int write(wire::Message& msg);
   bool read(wire::Message& msg);
 
-  int write_raw(std::string val);
+  WriteStatus write(wire::Message& msg);
+  WriteStatus write_raw(std::string val);
+
+  void write_block(wire::Message& msg);
+
+  WriteStatus flush() {
+    return writes_.flush(fd);
+  }
 };
 
 #endif

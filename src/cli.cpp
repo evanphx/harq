@@ -77,7 +77,7 @@ end:
 
       msg.set_destination("+");
       msg.set_payload(act.SerializeAsString());
-      sock.write(msg);
+      sock.write_block(msg);
 
       msg.set_confirm_id(7);
     }
@@ -89,9 +89,9 @@ end:
       msg.set_flags(eQueue);
     }
 
-    int size = sock.write(msg);
+    sock.write_block(msg);
 
-    std::cout << "Sent " << size << " bytes to " << argv[1] << "\n";
+    std::cout << "Sent " << msg.ByteSize() << " bytes to " << argv[1] << "\n";
 
     if(getenv("CONFIRM")) {
       wire::Message in;
@@ -121,7 +121,7 @@ end:
       msg.set_destination("+");
       msg.set_payload(act.SerializeAsString());
 
-      sock.write(msg);
+      sock.write_block(msg);
     }
 
     wire::Action act;
@@ -146,7 +146,7 @@ end:
     msg.set_destination("+");
     msg.set_payload(act.SerializeAsString());
 
-    sock.write(msg);
+    sock.write_block(msg);
 
     for(;;) {
       wire::Message in;
@@ -169,7 +169,7 @@ end:
 
           std::cout << "ACK'd message " << act.id() << "\n";
 
-          sock.write(msg);
+          sock.write_block(msg);
         } else {
           std::cerr << "Wanted to ACK a message with no id\n";
         }

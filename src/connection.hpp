@@ -17,6 +17,7 @@ class Server;
 
 namespace wire {
   class Message;
+  class Action;
 }
 
 class Connection {
@@ -61,16 +62,13 @@ public:
 
   void start();
   bool do_read(int revents);
-  int  do_write();
 
   void handle_message(wire::Message& msg);
+  void handle_action(wire::Action& act);
+
   bool deliver(wire::Message& msg);
 
-  void write_raw(std::string str);
-
-  int write(wire::Message& msg) {
-    return sock_.write(msg);
-  }
+  void write(wire::Message& msg);
 
   void clear_ack(uint64_t id);
 };

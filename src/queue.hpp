@@ -31,6 +31,10 @@ public:
     , name_(name)
   {}
 
+  Server* server() {
+    return server_;
+  }
+
   unsigned queued_message() {
     return transient_.size();
   }

@@ -19,7 +19,7 @@ ssize_t Buffer::fill(int fd) {
 }
 
 int Buffer::read_int32() {
-  int s = *((int*)read_pos_);
+  int s = ntohl(*((int*)read_pos_));
   advance_read(4);
   return s;
 }

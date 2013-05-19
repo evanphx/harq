@@ -1,3 +1,4 @@
+#include "qadmus.hpp"
 #include "socket.hpp"
 
 #include "wire.pb.h"
@@ -9,35 +10,71 @@
 #include <fcntl.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 
-int Socket::write(wire::Message& msg) {
-  google::protobuf::io::FileOutputStream stream(fd);
+WriteStatus Socket::write(wire::Message& msg) {
+  std::string out;
 
-  int size = msg.ByteSize();
-
-  ::write(fd, &size, sizeof(int));
-
-  msg.SerializeToZeroCopyStream(&stream);
-
-  return size;
-}
-
-int Socket::write_raw(std::string val) {
-  int size = val.size();
-
-  ::write(fd, &size, sizeof(int));
-
-  int wrote = ::write(fd, val.c_str(), val.size());
-  if(wrote != val.size()) {
-    std::cerr << "Didn't do a full write...\n";
+  if(!msg.SerializeToString(&out)) {
+    std::cerr << "Error serializing message\n";
+    return eFailure;
   }
 
-  return wrote;
+  return write_raw(out);
+}
+
+WriteStatus Socket::write_raw(std::string val) {
+  union sz {
+    char buf[4];
+    uint32_t i;
+  } sz;
+
+  sz.i = htonl(val.size());
+
+#ifdef DEBUG
+  std::cout << "Queue'd data of size " << val.size() << " bytes\n";
+#endif
+
+  writes_.add(std::string(sz.buf,4));
+  writes_.add(val);
+
+  WriteStatus stat = writes_.flush(fd);
+
+#ifdef DEBUG
+  switch(stat) {
+  case eOk:
+    std::cout << "Writes flushed successfully\n";
+    break;
+  case eWouldBlock:
+    std::cout << "Writes would have blocked, NOT fully flushed\n";
+    break;
+  case eFailure:
+    std::cout << "Writes failed, socket busted\n";
+    break;
+  }
+#endif
+
+  return stat;
+}
+
+void Socket::write_block(wire::Message& msg) {
+  WriteStatus stat = write(msg);
+  while(stat != eOk) {
+    fd_set fds;
+    FD_ZERO(&fds);
+    FD_SET(fd, &fds);
+
+#ifdef SIMULATE_BAD_NETWORK
+    usleep(250000);
+#endif
+
+    select(fd+1, 0, &fds, 0, 0);
+    stat = flush();
+  }
 }
 
 bool Socket::read(wire::Message& msg) {
   union sz {
     char buf[4];
-    int i;
+    uint32_t i;
   } sz;
 
   ssize_t got = 0;
@@ -50,7 +87,7 @@ bool Socket::read(wire::Message& msg) {
 
   google::protobuf::io::FileInputStream ins(fd);
 
-  msg.ParseFromBoundedZeroCopyStream(&ins, sz.i);
+  msg.ParseFromBoundedZeroCopyStream(&ins, ntohl(sz.i));
 
   return true;
 }

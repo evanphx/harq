@@ -2,6 +2,7 @@
 #include "connection.hpp"
 #include "flags.hpp"
 #include "server.hpp"
+#include "debugs.hpp"
 
 #include "wire.pb.h"
 #include "leveldb/db.h"
@@ -29,9 +30,7 @@ void Queue::flush(Connection* con, leveldb::DB* db) {
   leveldb::Status s = db->Get(leveldb::ReadOptions(), name_, &val);
 
   if(!s.ok()) {
-#ifdef DEBUG
-    std::cout << "No message to flush from " << name_ << "\n";
-#endif
+    debugs << "No message to flush from " << name_ << "\n";
     return;
   }
 
@@ -52,13 +51,20 @@ void Queue::flush(Connection* con, leveldb::DB* db) {
 
     s = db->Get(leveldb::ReadOptions(), ss.str(), &val);
     if(s.ok()) {
-      con->write_raw(val);
-      s = db->Delete(leveldb::WriteOptions(), ss.str());
+      wire::Message msg;
+
+      if(msg.ParseFromString(val)) {
+        con->deliver(msg);
+
+        s = db->Delete(leveldb::WriteOptions(), ss.str());
 #ifdef DEBUG
-      std::cout << "Flushed message " << i << "\n";
+        std::cout << "Flushed message " << i << "\n";
 #endif
-      if(!s.ok()) {
-        std::cerr << "Unable to delete " << ss.str() << "\n";
+        if(!s.ok()) {
+          std::cerr << "Unable to delete " << ss.str() << "\n";
+        }
+      } else {
+        std::cerr << "Encountered corrupt message on disk\n";
       }
     } else {
       std::cerr << "Unable to get " << ss.str() << "\n";

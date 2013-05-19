@@ -15,10 +15,11 @@
 #include "action.hpp"
 
 #include "wire.pb.h"
+#include "debugs.hpp"
 
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 
-#define FLOW(str) std::cout << "- " << str << "\n"
+#define FLOW(str) debugs << "- " << str << "\n"
 
 Connection::Connection(Server *s, int fd)
   : tap_(false)
@@ -34,7 +35,7 @@ Connection::Connection(Server *s, int fd)
   , writer_started(false)
 {
   read_w_.set<Connection, &Connection::on_readable>(this);
-  // write_w_->set<Connection, &Connection::on_writable>(this);
+  write_w_.set<Connection, &Connection::on_writable>(this);
 
   timeout_watcher.data = this;
 
@@ -51,7 +52,15 @@ Connection::~Connection() {
       write_w_.stop();
     }
 
-    close(sock_.fd);
+    for(;;) {
+      int ret = close(sock_.fd);
+      if(ret == 0) break;
+      if(errno == EINTR) continue;
+
+      std::cerr << "Error while closing fd " << sock_.fd
+                << " (" << errno << ", " << strerror(errno) << ")\n";
+      break;
+    }
   }
 
   server->clients_num--;
@@ -65,6 +74,7 @@ void Connection::start() {
 void Connection::clear_ack(uint64_t id) {
   FLOW("Clear Ack");
   AckMap::iterator i = to_ack_.find(id);
+
   if(i != to_ack_.end()) {
     to_ack_.erase(i);
 #ifdef DEBUG
@@ -77,6 +87,56 @@ void Connection::clear_ack(uint64_t id) {
   }
 }
 
+void Connection::handle_action(wire::Action& act) {
+  ActionType type = (ActionType)act.type();
+
+  switch(type) {
+  case eSubscribe:
+    FLOW("ACT eSubscribe");
+    subscriptions_.push_back(act.payload());
+    server->subscribe(this, act.payload());
+    server->flush(this, act.payload());
+    break;
+  case eTap:
+    FLOW("ACT eTap");
+    tap_ = true;
+    break;
+  case eDurableSubscribe:
+    FLOW("ACT eDurableSubscribe");
+    subscriptions_.push_back(act.payload());
+    server->subscribe(this, act.payload(), true);
+    server->reserve(act.payload(), false);
+    // fallthrough to flush also
+  case eFlush:
+    FLOW("ACT eFlush");
+    server->flush(this, act.payload());
+    break;
+  case eRequestAck:
+    FLOW("ACT eRequestAck");
+    ack_ = true;
+    break;
+  case eAck:
+    FLOW("ACT eAck");
+    if(act.has_id()) {
+      clear_ack(act.id());
+    } else {
+      std::cerr << "Received ACK with no id\n";
+    }
+    break;
+  case eRequestConfirm:
+    FLOW("ACT eRequestConfirm");
+    confirm_ = true;
+    break;
+  case eConfirm:
+    FLOW("ACT eConfirm");
+    std::cerr << "Server recieved Confirm action mistakenly\n";
+    break;
+  default:
+    std::cerr << "Received unknown action type: " << act.type() << "\n";
+    break;
+  }
+}
+
 void Connection::handle_message(wire::Message& msg) {
   std::string dest = msg.destination();
 
@@ -86,49 +146,9 @@ void Connection::handle_message(wire::Message& msg) {
     FLOW("ACTION");
 
     if(act.ParseFromString(msg.payload())) {
-      ActionType type = (ActionType)act.type();
-      switch(type) {
-      case eSubscribe:
-        FLOW("ACT eSubscribe");
-        subscriptions_.push_back(act.payload());
-        server->subscribe(this, act.payload());
-        server->flush(this, act.payload());
-        break;
-      case eTap:
-        FLOW("ACT eTap");
-        tap_ = true;
-        break;
-      case eDurableSubscribe:
-        FLOW("ACT eDurableSubscribe");
-        subscriptions_.push_back(act.payload());
-        server->subscribe(this, act.payload(), true);
-        server->reserve(act.payload(), false);
-        // fallthrough to flush also
-      case eFlush:
-        FLOW("ACT eFlush");
-        server->flush(this, act.payload());
-        break;
-      case eRequestAck:
-        FLOW("ACT eRequestAck");
-        ack_ = true;
-        break;
-      case eAck:
-        FLOW("ACT eAck");
-        if(act.has_id()) {
-          clear_ack(act.id());
-        } else {
-          std::cerr << "Recieved ACK with no id\n";
-        }
-        break;
-      case eRequestConfirm:
-        FLOW("ACT eRequestConfirm");
-        confirm_ = true;
-        break;
-      case eConfirm:
-        FLOW("ACT eConfirm");
-        std::cerr << "Server recieved Confirm action mistakenly\n";
-        break;
-      }
+      handle_action(act);
+    } else {
+      std::cerr << "Unable to parse message send to '+'\n";
     }
   } else {
 #ifdef DEBUG
@@ -149,13 +169,39 @@ void Connection::handle_message(wire::Message& msg) {
       wire::Message om;
 
       om.set_destination("+");
-      om.set_payload(oa.SerializeAsString());
 
-      sock_.write(om);
+      std::string data;
+      if(!oa.SerializeToString(&data)) {
+        std::cerr << "Error creating confirmation message: "
+                  << oa.InitializationErrorString() << "\n";
+        return;
+      }
+
+      om.set_payload(data);
+
+      write(om);
 #ifdef DEBUG
-      std::cout << "Sent confirmation of message id " << msg.confirm_id() << "\n";
+      std::cout << "Sent confirmation of message id "
+                << msg.confirm_id() << "\n";
 #endif
     }
+  }
+}
+
+void Connection::write(wire::Message& msg) {
+  switch(sock_.write(msg)) {
+  case eOk:
+    return;
+  case eFailure:
+    std::cerr << "Error writing to socket\n";
+    closing_ = true;
+    return;
+  case eWouldBlock:
+    write_w_.start(sock_.fd, EV_WRITE);
+#ifdef DEBUG
+    std::cout << "Starting writable watcher\n";
+#endif
+    return;
   }
 }
 
@@ -165,7 +211,7 @@ bool Connection::deliver(wire::Message& msg) {
   std::string dest = msg.destination();
 
   if(tap_) {
-    sock_.write(msg);
+    write(msg);
     return false;
   }
 
@@ -173,7 +219,8 @@ bool Connection::deliver(wire::Message& msg) {
     to_ack_[server->assign_id(msg)] = msg;
   }
 
-  sock_.write(msg);
+  write(msg);
+  
   return true;
 }
 
@@ -197,6 +244,10 @@ bool Connection::do_read(int revents) {
   for(;;) {
     if(state == eReadSize) {
       FLOW("READ SIZE");
+
+#ifdef DEBUG
+    std::cout << "avail=" << buffer_.read_available() << "\n";
+#endif
 
       if(buffer_.read_available() < 4) return true;
 
@@ -224,11 +275,15 @@ bool Connection::do_read(int revents) {
 
     wire::Message msg;
 
-    msg.ParseFromArray(buffer_.read_pos(), need);
+    bool ok = msg.ParseFromArray(buffer_.read_pos(), need);
 
     buffer_.advance_read(need);
 
-    handle_message(msg);
+    if(ok) {
+      handle_message(msg);
+    } else {
+      std::cerr << "Unable to parse request\n";
+    }
 
     state = eReadSize;
   }
@@ -259,76 +314,28 @@ void Connection::on_readable(ev::io& w, int revents)
     delete this;
     return;
   }
-
-  /* rl_connection_reset_timeout(connection); */
-
-  /* error: */
-  /* rl_connection_schedule_close(connection); */
 }
 
-void Connection::write_raw(std::string val) {
-  if(ack_) {
-    wire::Message msg;
-    msg.ParseFromString(val);
+void Connection::on_writable(ev::io& w, int revents) {
+  FLOW("WRITE READY");
 
-    to_ack_[server->assign_id(msg)] = msg;
-
-    val = msg.SerializeAsString();
-  }
-
-  int w = sock_.write_raw(val);
-
+  switch(sock_.flush()) {
+  case eOk:
 #ifdef DEBUG
-  std::cout << "Wrote " << w << " bytes to client\n";
+    std::cout << "Flushed socket in writable event\n";
 #endif
-
-}
-
-int Connection::do_write() {
-  /*
-    size_t nleft=write_buffer.size();
-    ssize_t nwritten=0;
-    const char *ptr=write_buffer.c_str();
-
-    if ((nwritten = write(fd, ptr, nleft)) < 0) {
-        if (nwritten < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)){
-            return 0;
-        }else{
-            perror("Write Error Msg");
-            writer_started=false;
-            ev_io_stop(server->loop_, &write_watcher);
-            return -1;
-        }
-    }
-    write_buffer.erase(0,nwritten);
-    if(write_buffer.size()<=0){
-        writer_started=false;
-        ev_io_stop(server->loop_, &write_watcher);
-    }
-    */
-    return 1;
-}
-
-
-void Connection::on_writable(ev::io& w, int revents)
-{
-  /*
-    Connection *connection = static_cast<Connection*>(watcher->data);
-    int ret = connection->do_write();
-    switch(ret) {
-    case -1:
-        puts("write error");
-        break;
-    case 0:
-        //unwritable
-        break;
-    case 1:
-        //done
-        break;
-    default:
-        puts("unknown return error");
-        break;
-    }
-    */
+    write_w_.stop();
+    return;
+  case eFailure:
+    std::cerr << "Error writing to socket in writable event\n";
+    closing_ = true;
+    write_w_.stop();
+    return;
+  case eWouldBlock:
+#ifdef DEBUG
+    std::cout << "Flush didn't finish for writeable event\n";
+#endif
+    return;
+  }
 }
 
