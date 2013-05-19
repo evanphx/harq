@@ -1,5 +1,7 @@
 #include "buffer.hpp"
 
+#include <errno.h>
+
 Buffer::Buffer(size_t size)
   : buffer_(new uint8_t[size])
   , read_pos_(buffer_)
@@ -10,12 +12,16 @@ Buffer::Buffer(size_t size)
 ssize_t Buffer::fill(int fd) {
   size_t left = limit_ - write_pos_;
 
-  ssize_t got = recv(fd, write_pos_, left, 0);
-  if(got > 0) {
-    write_pos_ += got;
-  }
+  for(;;) {
+    ssize_t got = recv(fd, write_pos_, left, 0);
+    if(got > 0) {
+      write_pos_ += got;
+    } else if(got == -1 && errno == EINTR) {
+      continue;
+    }
 
-  return got;
+    return got;
+  }
 }
 
 int Buffer::read_int32() {

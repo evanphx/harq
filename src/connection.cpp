@@ -37,8 +37,6 @@ Connection::Connection(Server *s, int fd)
   read_w_.set<Connection, &Connection::on_readable>(this);
   write_w_.set<Connection, &Connection::on_writable>(this);
 
-  timeout_watcher.data = this;
-
   sock_.set_nonblock();
   open=true;
   server->clients_num++;
@@ -186,6 +184,7 @@ void Connection::write(wire::Message& msg) {
     closing_ = true;
     return;
   case eWouldBlock:
+    writer_started = true;
     write_w_.start(sock_.fd, EV_WRITE);
     debugs << "Starting writable watcher\n";
     return;
@@ -213,17 +212,23 @@ bool Connection::deliver(wire::Message& msg) {
 
 bool Connection::do_read(int revents) {
   if(EV_ERROR & revents) {
-    puts("on_readable() got error event, closing connection.");
+    std::cerr << "Error event detected, closing connection\n";
+    closing_ = true;
     return false;
   }
 
   ssize_t recved = buffer_.fill(sock_.fd);
 
+  if(recved < 0) {
+    if(errno == EAGAIN || errno == EWOULDBLOCK) return false;
+    std::cerr << "Error reading from socket: " << strerror(errno) << "\n";
+    closing_ = true;
+    return false;
+  }
+
   if(recved == 0) return false;
 
   debugs << "Read " << recved << " bytes\n";
-
-  if(recved <= 0) return false;
 
   // Allow us to parse multiple messages in one read
   for(;;) {
@@ -262,6 +267,8 @@ bool Connection::do_read(int revents) {
       handle_message(msg);
     } else {
       std::cerr << "Unable to parse request\n";
+      closing_ = true;
+      return false;
     }
 
     state = eReadSize;
@@ -301,11 +308,13 @@ void Connection::on_writable(ev::io& w, int revents) {
   switch(sock_.flush()) {
   case eOk:
     debugs << "Flushed socket in writable event\n";
+    writer_started = false;
     write_w_.stop();
     return;
   case eFailure:
     std::cerr << "Error writing to socket in writable event\n";
     closing_ = true;
+    writer_started = false;
     write_w_.stop();
     return;
   case eWouldBlock:

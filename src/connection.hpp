@@ -45,9 +45,6 @@ public:
 
   bool writer_started;
 
-  ev_timer timeout_watcher;
-  ev_timer goodbye_watcher;
-
   /*** methods ***/
 
   Connection(Server *s, int fd);

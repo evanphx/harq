@@ -68,7 +68,7 @@ void Socket::write_block(wire::Message& msg) {
   }
 }
 
-bool Socket::read(wire::Message& msg) {
+bool Socket::read_block(wire::Message& msg) {
   union sz {
     char buf[4];
     uint32_t i;
@@ -84,7 +84,7 @@ bool Socket::read(wire::Message& msg) {
 
   google::protobuf::io::FileInputStream ins(fd);
 
-  msg.ParseFromBoundedZeroCopyStream(&ins, ntohl(sz.i));
+  if(!msg.ParseFromBoundedZeroCopyStream(&ins, ntohl(sz.i))) return false;
 
   return true;
 }

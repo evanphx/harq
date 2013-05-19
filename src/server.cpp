@@ -157,9 +157,9 @@ void Server::reserve(std::string dest, bool implicit) {
     // Upgrade an implicit persistance to an explicit one.
     if(!implicit) {
       wire::Queue q;
-      q.ParseFromString(val);
-
-      if(!q.implicit()) {
+      if(!q.ParseFromString(val)) {
+        std::cerr << "Corrupt queue info on disk, resetting..\n";
+      } else if(!q.implicit()) {
         q.set_implicit(false);
         s = db_->Put(write_options_, dest, q.SerializeAsString());
 
@@ -168,20 +168,23 @@ void Server::reserve(std::string dest, bool implicit) {
         } else {
           debugs << "Upgraded implicit persistance to explicit.\n";
         }
+
+        return;
       }
+    } else {
+      debugs << "Already reserved " << dest << "\n";
+      return;
     }
+  }
 
-    debugs << "Already reserved " << dest << "\n";
-  } else {
-    wire::Queue q;
-    q.set_count(0);
-    q.set_implicit(implicit);
+  wire::Queue q;
+  q.set_count(0);
+  q.set_implicit(implicit);
 
-    s = db_->Put(write_options_, dest, q.SerializeAsString());
-    debugs << "Reserved " << dest << "\n";
-    if(!s.ok()) {
-      std::cerr << "Unable to reserve " << dest << "\n";
-    }
+  s = db_->Put(write_options_, dest, q.SerializeAsString());
+  debugs << "Reserved " << dest << "\n";
+  if(!s.ok()) {
+    std::cerr << "Unable to reserve " << dest << "\n";
   }
 }
 

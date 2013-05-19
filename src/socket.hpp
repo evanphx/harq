@@ -20,11 +20,11 @@ public:
   {}
 
   void set_nonblock();
-  bool read(wire::Message& msg);
 
   WriteStatus write(wire::Message& msg);
   WriteStatus write_raw(std::string val);
 
+  bool read_block(wire::Message& msg);
   void write_block(wire::Message& msg);
 
   WriteStatus flush() {

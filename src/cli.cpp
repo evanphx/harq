@@ -29,7 +29,7 @@
 
 int cli(int argc, char** argv) {
   int s, rv;
-  char _port[6];  /* strlen("65535"); */
+  char port[6];  /* strlen("65535"); */
   struct addrinfo hints, *servinfo, *p;
 
   if(argc < 2) {
@@ -37,12 +37,12 @@ int cli(int argc, char** argv) {
     return 1;
   }
 
-  snprintf(_port, 6, "%d", 7621);
+  snprintf(port, 6, "%d", 7621);
   memset(&hints,0,sizeof(hints));
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
 
-  if ((rv = getaddrinfo("127.0.0.1",_port,&hints,&servinfo)) != 0) {
+  if ((rv = getaddrinfo("127.0.0.1",port,&hints,&servinfo)) != 0) {
     printf("Error: %s\n", gai_strerror(rv));
     return 1;
   }
@@ -97,12 +97,18 @@ end:
 
     if(getenv("CONFIRM")) {
       wire::Message in;
-      sock.read(in);
+      if(!sock.read_block(in)) {
+        std::cerr << "Unable to read confirm message\n";
+        return 1;
+      }
 
       if(in.destination() == "+") {
         wire::Action act;
 
-        act.ParseFromString(in.payload());
+        if(!act.ParseFromString(in.payload())) {
+          std::cerr << "Malformed action received to '+'\n";
+          return 1;
+        }
 
         if(act.id() == 7) {
           std::cout << "Confirmed message received\n";
@@ -152,9 +158,9 @@ end:
 
     for(;;) {
       wire::Message in;
-      if(!sock.read(in)) {
+      if(!sock.read_block(in)) {
         std::cerr << "Socket closed by server\n";
-        return 0;
+        return 1;
       }
 
       WriteJson(in, std::cout);

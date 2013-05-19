@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <sys/socket.h>
 
+#include <iostream>
+
 class Buffer {
   uint8_t* buffer_;
   uint8_t* read_pos_;
@@ -28,6 +30,8 @@ public:
   void advance_read(int size) {
     uint8_t* ptr = read_pos_ + size;
     if(ptr > write_pos_) {
+      std::cerr <<
+        "Requested to advance further than available data in buffer\n";
       read_pos_ = write_pos_;
     } else {
       read_pos_ = ptr;
