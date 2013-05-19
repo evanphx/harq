@@ -1,5 +1,6 @@
 #include "qadmus.hpp"
 #include "socket.hpp"
+#include "debugs.hpp"
 
 #include "wire.pb.h"
 
@@ -29,28 +30,24 @@ WriteStatus Socket::write_raw(std::string val) {
 
   sz.i = htonl(val.size());
 
-#ifdef DEBUG
-  std::cout << "Queue'd data of size " << val.size() << " bytes\n";
-#endif
+  debugs << "Queue'd data of size " << val.size() << " bytes\n";
 
   writes_.add(std::string(sz.buf,4));
   writes_.add(val);
 
   WriteStatus stat = writes_.flush(fd);
 
-#ifdef DEBUG
   switch(stat) {
   case eOk:
-    std::cout << "Writes flushed successfully\n";
+    debugs << "Writes flushed successfully\n";
     break;
   case eWouldBlock:
-    std::cout << "Writes would have blocked, NOT fully flushed\n";
+    debugs << "Writes would have blocked, NOT fully flushed\n";
     break;
   case eFailure:
-    std::cout << "Writes failed, socket busted\n";
+    debugs << "Writes failed, socket busted\n";
     break;
   }
-#endif
 
   return stat;
 }

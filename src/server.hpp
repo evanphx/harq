@@ -11,6 +11,7 @@
 #include "ev++.h"
 #include <leveldb/db.h>
 #include "queue.hpp"
+#include "debugs.hpp"
 
 #include "wire.pb.h"
 
@@ -58,9 +59,7 @@ public:
   uint64_t assign_id(wire::Message& msg) {
     uint64_t id = next_id();
     msg.set_id(id);
-#ifdef DEBUG
-    std::cout << "Assigned message id " << id << "\n";
-#endif
+    debugs << "Assigned message id " << id << "\n";
     return id;
   }
 

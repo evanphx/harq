@@ -77,13 +77,9 @@ void Connection::clear_ack(uint64_t id) {
 
   if(i != to_ack_.end()) {
     to_ack_.erase(i);
-#ifdef DEBUG
-    std::cout << "Successfully acked " << id << "\n";
-#endif
+    debugs << "Successfully acked " << id << "\n";
   } else {
-#ifdef DEBUG
-    std::cout << "Unable to find id " << id << " to clear\n";
-#endif
+    debugs << "Unable to find id " << id << " to clear\n";
   }
 }
 
@@ -151,11 +147,6 @@ void Connection::handle_message(wire::Message& msg) {
       std::cerr << "Unable to parse message send to '+'\n";
     }
   } else {
-#ifdef DEBUG
-    std::cout << "dest='" << msg.destination() << "' "
-              << "payload='" << msg.payload() << "'\n";
-#endif
-
     server->deliver(msg);
 
     if(confirm_) {
@@ -180,10 +171,8 @@ void Connection::handle_message(wire::Message& msg) {
       om.set_payload(data);
 
       write(om);
-#ifdef DEBUG
-      std::cout << "Sent confirmation of message id "
-                << msg.confirm_id() << "\n";
-#endif
+      debugs << "Sent confirmation of message id "
+             << msg.confirm_id() << "\n";
     }
   }
 }
@@ -198,9 +187,7 @@ void Connection::write(wire::Message& msg) {
     return;
   case eWouldBlock:
     write_w_.start(sock_.fd, EV_WRITE);
-#ifdef DEBUG
-    std::cout << "Starting writable watcher\n";
-#endif
+    debugs << "Starting writable watcher\n";
     return;
   }
 }
@@ -234,9 +221,7 @@ bool Connection::do_read(int revents) {
 
   if(recved == 0) return false;
 
-#ifdef DEBUG
-  printf("Read %ld bytes\n", recved);
-#endif
+  debugs << "Read " << recved << " bytes\n";
 
   if(recved <= 0) return false;
 
@@ -245,26 +230,20 @@ bool Connection::do_read(int revents) {
     if(state == eReadSize) {
       FLOW("READ SIZE");
 
-#ifdef DEBUG
-    std::cout << "avail=" << buffer_.read_available() << "\n";
-#endif
+      debugs << "avail=" << buffer_.read_available() << "\n";
 
       if(buffer_.read_available() < 4) return true;
 
       int size = buffer_.read_int32();
 
-#ifdef DEBUG
-      std::cout << "msg size=" << size << "\n";
-#endif
+      debugs << "msg size=" << size << "\n";
 
       need = size;
 
       state = eReadMessage;
     }
 
-#ifdef DEBUG
-    std::cout << "avail=" << buffer_.read_available() << "\n";
-#endif
+    debugs << "avail=" << buffer_.read_available() << "\n";
 
     if(buffer_.read_available() < need) {
       FLOW("NEED MORE");
@@ -321,9 +300,7 @@ void Connection::on_writable(ev::io& w, int revents) {
 
   switch(sock_.flush()) {
   case eOk:
-#ifdef DEBUG
-    std::cout << "Flushed socket in writable event\n";
-#endif
+    debugs << "Flushed socket in writable event\n";
     write_w_.stop();
     return;
   case eFailure:
@@ -332,9 +309,7 @@ void Connection::on_writable(ev::io& w, int revents) {
     write_w_.stop();
     return;
   case eWouldBlock:
-#ifdef DEBUG
-    std::cout << "Flush didn't finish for writeable event\n";
-#endif
+    debugs << "Flush didn't finish for writeable event\n";
     return;
   }
 }

@@ -20,6 +20,8 @@
 #include "connection.hpp"
 #include "action.hpp"
 #include "flags.hpp"
+#include "debugs.hpp"
+#include "json.hpp"
 
 #include "wire.pb.h"
 
@@ -151,12 +153,11 @@ end:
     for(;;) {
       wire::Message in;
       if(!sock.read(in)) {
-        std::cout << "Socket closed by server\n";
+        std::cerr << "Socket closed by server\n";
         return 0;
       }
 
-      std::cout << "{\n  'destination': '" << in.destination() << "',\n"
-                << "  'payload': '" << in.payload() << "'\n}\n";
+      WriteJson(in, std::cout);
 
       if(use_acks) {
         if(getenv("ACK_CRASH")) return -1;

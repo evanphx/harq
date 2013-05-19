@@ -39,9 +39,7 @@ void Queue::flush(Connection* con, leveldb::DB* db) {
 
   int count = qi.count();
 
-#ifdef DEBUG
-  std::cout << "Messages to flush: " << count << "\n";
-#endif
+  debugs << "Messages to flush: " << count << "\n";
 
   for(int i = 0; i < count; i++) {
     std::stringstream ss;
@@ -57,9 +55,7 @@ void Queue::flush(Connection* con, leveldb::DB* db) {
         con->deliver(msg);
 
         s = db->Delete(leveldb::WriteOptions(), ss.str());
-#ifdef DEBUG
-        std::cout << "Flushed message " << i << "\n";
-#endif
+        debugs << "Flushed message " << i << "\n";
         if(!s.ok()) {
           std::cerr << "Unable to delete " << ss.str() << "\n";
         }
@@ -73,9 +69,7 @@ void Queue::flush(Connection* con, leveldb::DB* db) {
 
   if(qi.implicit()) {
     s = db->Delete(leveldb::WriteOptions(), name_);
-#ifdef DEBUG
-    std::cout << "Deleted implicit queue: " << name_ << "\n";
-#endif
+    debugs << "Deleted implicit queue: " << name_ << "\n";
   } else {
     qi.set_count(0);
     s = db->Put(leveldb::WriteOptions(), name_, qi.SerializeAsString());
@@ -112,10 +106,8 @@ bool Queue::deliver(wire::Message& msg, leveldb::DB* db) {
       ss << ":";
       ss << c;
 
-#ifdef DEBUG
-      std::cout << "Writing persisted message for " << name_
-                << " (" << c  << ")\n";
-#endif
+      debugs << "Writing persisted message for " << name_
+             << " (" << c  << ")\n";
 
       c++;
       qi.set_count(c);
@@ -129,24 +121,18 @@ bool Queue::deliver(wire::Message& msg, leveldb::DB* db) {
       if(!s.ok()) {
         std::cerr << "Unable to write message to DB: " << s.ToString() << "\n";
       } else {
-#ifdef DEBUG
-        std::cout << "Updated index of " << name_ << " to " << c << "\n";
-#endif
+        debugs << "Updated index of " << name_ << " to " << c << "\n";
       }
     } else {
       if(msg.flags() | eQueue) {
-#ifdef DEBUG
-        std::cout << "Queue'd transient message at " << name_ << "\n";
-#endif
+        debugs << "Queue'd transient message at " << name_ << "\n";
         queue(msg);
       } else {
-#ifdef DEBUG
-        std::cout << "No transient or persisted dest at " << name_ << "\n";
-#endif
+        debugs << "No transient or persisted dest at " << name_ << "\n";
       }
     }
   } else {
-    std::cout << "No persistance used\n";
+    debugs << "No persistance used\n";
   }
 
   return consumed;

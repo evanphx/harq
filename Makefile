@@ -9,9 +9,9 @@ ifeq ($(uname_S),Linux)
   LDFLAGS += -lpthread
 endif
 
-ifneq ($(NDEBUG),1)
-  CXXFLAGS += -g -DDEBUG
-endif
+# ifneq ($(NDEBUG),1)
+  # CXXFLAGS += -g -DDEBUG
+# endif
 
 all: qadmus
 

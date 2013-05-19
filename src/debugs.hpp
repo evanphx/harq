@@ -1,3 +1,5 @@
+#ifndef DEBUGS_HPP
+#define DEBUGS_HPP
 
 #ifdef DEBUG
 #include <iostream>
@@ -12,5 +14,7 @@ struct DebugSinkStream {
 };
 
 extern DebugSinkStream debugs;
+
+#endif
 
 #endif

@@ -20,6 +20,7 @@
 
 #include "leveldb/write_batch.h"
 
+#include "debugs.hpp"
 #include "util.hpp"
 #include "server.hpp"
 #include "connection.hpp"
@@ -165,24 +166,19 @@ void Server::reserve(std::string dest, bool implicit) {
         if(!s.ok()) {
           std::cerr << "Unable to upgrade queue to explicit: " << dest << "\n";
         } else {
-#ifdef DEBUG
-          std::cout << "Upgraded implicit persistance to explicit.\n";
-#endif
+          debugs << "Upgraded implicit persistance to explicit.\n";
         }
       }
     }
-#ifdef DEBUG
-    std::cout << "Already reserved " << dest << "\n";
-#endif
+
+    debugs << "Already reserved " << dest << "\n";
   } else {
     wire::Queue q;
     q.set_count(0);
     q.set_implicit(implicit);
 
     s = db_->Put(write_options_, dest, q.SerializeAsString());
-#ifdef DEBUG
-    std::cout << "Reserved " << dest << "\n";
-#endif
+    debugs << "Reserved " << dest << "\n";
     if(!s.ok()) {
       std::cerr << "Unable to reserve " << dest << "\n";
     }
@@ -192,8 +188,8 @@ void Server::reserve(std::string dest, bool implicit) {
 void Server::deliver(wire::Message& msg) {
   std::string dest = msg.destination();
 
-  std::cout << "delivering to " << dest << " for "
-            << connections_.size() << " connections\n";
+  debugs << "delivering to " << dest << " for "
+         << connections_.size() << " connections\n";
 
   queue(dest).deliver(msg, db_);
 }
