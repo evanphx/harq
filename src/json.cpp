@@ -27,7 +27,17 @@ void WriteJson(wire::Message& msg, std::ostream& os) {
   os << "{\n";
   os << "  \"destination\": \"";
   write_escape(msg.destination(), os);
-  os << "\",\n  \"payload\": \"";
+
+  os << "\",\n  \"id\": ";
+  os << msg.id();
+
+  os << ",\n  \"flags\": ";
+  os << msg.flags();
+
+  os << ",\n  \"confirm_id\": ";
+  os << msg.confirm_id();
+
+  os << ",\n  \"payload\": \"";
   write_escape(msg.payload(), os);
   os << "\"\n}\n";
 }
