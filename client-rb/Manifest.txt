@@ -1,0 +1,8 @@
+.autotest
+History.txt
+Manifest.txt
+README.txt
+Rakefile
+bin/qadmus
+lib/qadmus.rb
+test/test_qadmus.rb

@@ -1,0 +1,11 @@
+# -*- ruby -*-
+
+require 'rubygems'
+require 'hoe'
+
+Hoe.spec 'qadmus' do
+  developer('Evan Phoenix', 'evan@phx.io')
+  dependency 'beefcake', '<= 1.0'
+end
+
+# vim: syntax=ruby
