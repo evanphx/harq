@@ -4,7 +4,7 @@
 #ifdef DEBUG
 #include <iostream>
 
-std::ostream& debugs = std::cout;
+extern std::ostream& debugs;
 
 #else
 

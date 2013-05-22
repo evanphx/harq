@@ -8,6 +8,7 @@ message Message {
   optional uint32 flags = 4;
 
   optional uint64 confirm_id = 5;
+  optional uint32 type = 6;
 }
 
 message Action {
@@ -19,4 +20,9 @@ message Action {
 message Queue {
   required int32 count = 1;
   required bool implicit = 2;
+}
+
+message Stat {
+  required string name = 1;
+  optional uint32 transient_size = 2;
 }

@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
   std::string data_dir = "qadmus.db";
 
   int ch = 0;
-  while((ch = getopt(argc, argv, "hdH:P:D:M:")) != -1) {
+  while((ch = getopt(argc, argv, "hDb:p:d:")) != -1) {
     switch(ch) {
     default:
     case 'h':

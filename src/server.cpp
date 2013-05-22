@@ -26,6 +26,7 @@
 #include "connection.hpp"
 
 #include "flags.hpp"
+#include "types.hpp"
 
 #include "wire.pb.h"
 
@@ -203,5 +204,20 @@ void Server::subscribe(Connection* con, std::string dest, bool durable) {
 
 void Server::flush(Connection* con, std::string dest) {
   queue(dest).flush(con, db_);
+}
+
+void Server::stat(Connection* con, std::string dest) {
+  Queue& q = queue(dest);
+
+  wire::Stat stat;
+  stat.set_name(dest);
+  stat.set_transient_size(q.queued_messages());
+
+  wire::Message msg;
+  msg.set_destination("+");
+  msg.set_type(eStat);
+  msg.set_payload(stat.SerializeAsString());
+
+  con->deliver(msg);
 }
 

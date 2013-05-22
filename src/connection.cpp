@@ -125,6 +125,10 @@ void Connection::handle_action(wire::Action& act) {
     FLOW("ACT eConfirm");
     std::cerr << "Server recieved Confirm action mistakenly\n";
     break;
+  case eRequestStat:
+    FLOW("ACT eRequestStat");
+    server->stat(this, act.payload());
+    break;
   default:
     std::cerr << "Received unknown action type: " << act.type() << "\n";
     break;

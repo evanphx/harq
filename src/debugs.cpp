@@ -1,4 +1,9 @@
 
 #include "debugs.hpp"
-DebugSinkStream debugs;
+
+#ifdef DEBUG
+  std::ostream& debugs = std::cout;
+#else
+  DebugSinkStream debugs;
+#endif
 

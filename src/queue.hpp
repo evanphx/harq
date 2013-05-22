@@ -35,7 +35,7 @@ public:
     return server_;
   }
 
-  unsigned queued_message() {
+  unsigned queued_messages() {
     return transient_.size();
   }
 

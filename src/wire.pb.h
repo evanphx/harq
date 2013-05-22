@@ -36,6 +36,7 @@ void protobuf_ShutdownFile_wire_2eproto();
 class Message;
 class Action;
 class Queue;
+class Stat;
 
 // ===================================================================
 
@@ -138,6 +139,13 @@ class Message : public ::google::protobuf::Message {
   inline ::google::protobuf::uint64 confirm_id() const;
   inline void set_confirm_id(::google::protobuf::uint64 value);
 
+  // optional uint32 type = 6;
+  inline bool has_type() const;
+  inline void clear_type();
+  static const int kTypeFieldNumber = 6;
+  inline ::google::protobuf::uint32 type() const;
+  inline void set_type(::google::protobuf::uint32 value);
+
   // @@protoc_insertion_point(class_scope:wire.Message)
  private:
   inline void set_has_destination();
@@ -150,6 +158,8 @@ class Message : public ::google::protobuf::Message {
   inline void clear_has_flags();
   inline void set_has_confirm_id();
   inline void clear_has_confirm_id();
+  inline void set_has_type();
+  inline void clear_has_type();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
@@ -158,9 +168,10 @@ class Message : public ::google::protobuf::Message {
   ::google::protobuf::uint64 id_;
   ::google::protobuf::uint64 confirm_id_;
   ::google::protobuf::uint32 flags_;
+  ::google::protobuf::uint32 type_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(6 + 31) / 32];
 
   friend void  protobuf_AddDesc_wire_2eproto();
   friend void protobuf_AssignDesc_wire_2eproto();
@@ -367,6 +378,103 @@ class Queue : public ::google::protobuf::Message {
 
   void InitAsDefaultInstance();
   static Queue* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class Stat : public ::google::protobuf::Message {
+ public:
+  Stat();
+  virtual ~Stat();
+
+  Stat(const Stat& from);
+
+  inline Stat& operator=(const Stat& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const Stat& default_instance();
+
+  void Swap(Stat* other);
+
+  // implements Message ----------------------------------------------
+
+  Stat* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const Stat& from);
+  void MergeFrom(const Stat& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required string name = 1;
+  inline bool has_name() const;
+  inline void clear_name();
+  static const int kNameFieldNumber = 1;
+  inline const ::std::string& name() const;
+  inline void set_name(const ::std::string& value);
+  inline void set_name(const char* value);
+  inline void set_name(const char* value, size_t size);
+  inline ::std::string* mutable_name();
+  inline ::std::string* release_name();
+  inline void set_allocated_name(::std::string* name);
+
+  // optional uint32 transient_size = 2;
+  inline bool has_transient_size() const;
+  inline void clear_transient_size();
+  static const int kTransientSizeFieldNumber = 2;
+  inline ::google::protobuf::uint32 transient_size() const;
+  inline void set_transient_size(::google::protobuf::uint32 value);
+
+  // @@protoc_insertion_point(class_scope:wire.Stat)
+ private:
+  inline void set_has_name();
+  inline void clear_has_name();
+  inline void set_has_transient_size();
+  inline void clear_has_transient_size();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::std::string* name_;
+  ::google::protobuf::uint32 transient_size_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+
+  friend void  protobuf_AddDesc_wire_2eproto();
+  friend void protobuf_AssignDesc_wire_2eproto();
+  friend void protobuf_ShutdownFile_wire_2eproto();
+
+  void InitAsDefaultInstance();
+  static Stat* default_instance_;
 };
 // ===================================================================
 
@@ -581,6 +689,28 @@ inline void Message::set_confirm_id(::google::protobuf::uint64 value) {
   confirm_id_ = value;
 }
 
+// optional uint32 type = 6;
+inline bool Message::has_type() const {
+  return (_has_bits_[0] & 0x00000020u) != 0;
+}
+inline void Message::set_has_type() {
+  _has_bits_[0] |= 0x00000020u;
+}
+inline void Message::clear_has_type() {
+  _has_bits_[0] &= ~0x00000020u;
+}
+inline void Message::clear_type() {
+  type_ = 0u;
+  clear_has_type();
+}
+inline ::google::protobuf::uint32 Message::type() const {
+  return type_;
+}
+inline void Message::set_type(::google::protobuf::uint32 value) {
+  set_has_type();
+  type_ = value;
+}
+
 // -------------------------------------------------------------------
 
 // Action
@@ -745,6 +875,102 @@ inline bool Queue::implicit() const {
 inline void Queue::set_implicit(bool value) {
   set_has_implicit();
   implicit_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// Stat
+
+// required string name = 1;
+inline bool Stat::has_name() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void Stat::set_has_name() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void Stat::clear_has_name() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void Stat::clear_name() {
+  if (name_ != &::google::protobuf::internal::kEmptyString) {
+    name_->clear();
+  }
+  clear_has_name();
+}
+inline const ::std::string& Stat::name() const {
+  return *name_;
+}
+inline void Stat::set_name(const ::std::string& value) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(value);
+}
+inline void Stat::set_name(const char* value) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(value);
+}
+inline void Stat::set_name(const char* value, size_t size) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* Stat::mutable_name() {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  return name_;
+}
+inline ::std::string* Stat::release_name() {
+  clear_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = name_;
+    name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void Stat::set_allocated_name(::std::string* name) {
+  if (name_ != &::google::protobuf::internal::kEmptyString) {
+    delete name_;
+  }
+  if (name) {
+    set_has_name();
+    name_ = name;
+  } else {
+    clear_has_name();
+    name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// optional uint32 transient_size = 2;
+inline bool Stat::has_transient_size() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void Stat::set_has_transient_size() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void Stat::clear_has_transient_size() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void Stat::clear_transient_size() {
+  transient_size_ = 0u;
+  clear_has_transient_size();
+}
+inline ::google::protobuf::uint32 Stat::transient_size() const {
+  return transient_size_;
+}
+inline void Stat::set_transient_size(::google::protobuf::uint32 value) {
+  set_has_transient_size();
+  transient_size_ = value;
 }
 
 

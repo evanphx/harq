@@ -84,6 +84,8 @@ public:
 
   void subscribe(Connection* con, std::string dest, bool durable=false);
   void flush(Connection* con, std::string dest);
+
+  void stat(Connection* con, std::string name);
 };
 
 
