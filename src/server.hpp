@@ -12,6 +12,7 @@
 #include <leveldb/db.h>
 #include "queue.hpp"
 #include "debugs.hpp"
+#include "safe_ref.hpp"
 
 #include "wire.pb.h"
 
@@ -65,13 +66,13 @@ public:
 
   Queue& queue(std::string name) {
     Queues::iterator i = queues_.find(name);
-    if(i != queues_.end()) return *i->second;
+    if(i != queues_.end()) return ref(i->second);
 
     Queue* q = new Queue(this, name);
 
     queues_[name] = q;
 
-    return *q;
+    return ref(q);
   }
 
   Server(std::string db_path, std::string hostaddr, int port);

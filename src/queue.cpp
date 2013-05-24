@@ -20,7 +20,7 @@ void Queue::flush(Connection* con, leveldb::DB* db) {
   for(Messages::iterator j = transient_.begin();
       j != transient_.end();
       ++j) {
-    con->write(**j);
+    con->write(ref(*j));
     delete *j;
   }
 
