@@ -1,12 +1,12 @@
 require 'test/unit'
-require 'qadmus'
+require 'harq'
 
-class TestQadmus < Test::Unit::TestCase
+class TestHarq < Test::Unit::TestCase
   def setup
-    @s = Qadmus.new
+    @s = Harq.new
     @s.subscribe "/test"
 
-    @q = Qadmus.new
+    @q = Harq.new
   end
 
   def teardown
@@ -33,7 +33,7 @@ class TestQadmus < Test::Unit::TestCase
 
     @q.queue "/test", "abcdef"
 
-    @s = Qadmus.new
+    @s = Harq.new
     @s.subscribe "/test"
     assert_equal "abcdef", payload
   end

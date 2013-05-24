@@ -3,7 +3,7 @@
 require 'rubygems'
 require 'hoe'
 
-Hoe.spec 'qadmus' do
+Hoe.spec 'harq' do
   developer('Evan Phoenix', 'evan@phx.io')
   dependency 'beefcake', '<= 1.0'
 end

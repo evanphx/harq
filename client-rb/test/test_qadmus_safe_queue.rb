@@ -1,9 +1,9 @@
 require 'test/unit'
-require 'qadmus/safe_queue'
+require 'harq/safe_queue'
 
-class TestQadmusSafeQueue < Test::Unit::TestCase
+class TestHarqSafeQueue < Test::Unit::TestCase
   def setup
-    @q = Qadmus.new
+    @q = Harq.new
   end
 
   def teardown
@@ -11,7 +11,7 @@ class TestQadmusSafeQueue < Test::Unit::TestCase
   end
 
   def sq
-    sq = Qadmus::SafeQueue.new
+    sq = Harq::SafeQueue.new
 
     begin
       yield sq
@@ -24,7 +24,7 @@ class TestQadmusSafeQueue < Test::Unit::TestCase
     msg = nil
 
     sq do |s|
-      s = Qadmus::SafeQueue.new
+      s = Harq::SafeQueue.new
       s.subscribe("blah") { |m| msg = m }
 
       @q.broadcast "blah", "abcdef"
@@ -39,7 +39,7 @@ class TestQadmusSafeQueue < Test::Unit::TestCase
     msg = nil
 
     sq do |s|
-      s = Qadmus::SafeQueue.new
+      s = Harq::SafeQueue.new
 
       error = true
       s.subscribe("blah") do |m|

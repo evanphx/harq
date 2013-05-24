@@ -1,9 +1,9 @@
 require 'test/unit'
-require 'qadmus/client'
+require 'harq/client'
 require 'fileutils'
 
 class TestServer < Test::Unit::TestCase
-  EXEC = File.expand_path "../../../qadmus", __FILE__
+  EXEC = File.expand_path "../../../harq", __FILE__
   TEST_DB = File.expand_path "../test.db"
   TEST_PORT = 12032
 
@@ -34,7 +34,7 @@ class TestServer < Test::Unit::TestCase
   end
 
   def connect
-    c = Qadmus::Client.new "localhost", TEST_PORT
+    c = Harq::Client.new "localhost", TEST_PORT
     @clients << c
     c
   end

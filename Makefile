@@ -13,12 +13,12 @@ ifneq ($(NDEBUG),1)
 	CXXFLAGS += -g -DDEBUG
 endif
 
-all: qadmus
+all: harq
 
 SRC=$(sort $(wildcard src/*.cpp))
 OBJ=$(patsubst %.cpp,%.o,$(SRC))
 
-qadmus: vendor/libleveldb.a $(OBJ) 
+harq: vendor/libleveldb.a $(OBJ) 
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $(OBJ)
 
 rebuild_pb:
@@ -26,7 +26,7 @@ rebuild_pb:
 	mv src/wire.pb.cc src/wire.pb.cpp
 
 clean:
-	-rm qadmus
+	-rm harq
 	-rm src/*.o
 
 distclean: clean

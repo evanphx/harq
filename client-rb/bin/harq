@@ -1,0 +1,45 @@
+#!/usr/bin/env ruby
+
+require 'harq/client'
+require 'optparse'
+require 'pp'
+
+server = false
+queue = false
+
+opt = OptionParser.new do |o|
+  o.on "-s" do
+    server = true
+  end
+
+  o.on "-q" do
+    queue = true
+  end
+end
+
+opt.parse! ARGV
+
+q = Harq::Client.new
+
+if server
+  ARGV.each do |n|
+    puts "Listening on '#{n}'"
+    q.subscribe! n
+  end
+
+  while true
+    m = q.read_message
+    pp m
+  end
+else
+  dest = ARGV.shift
+  payload = ARGV.shift
+
+  puts "Sending message to '#{dest}'"
+
+  if queue
+    q.queue dest, payload
+  else
+    q.broadcast dest, payload
+  end
+end

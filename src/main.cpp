@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
 
   int port=7621;
 
-  std::string data_dir = "qadmus.db";
+  std::string data_dir = "harq.db";
 
   int ch = 0;
   while((ch = getopt(argc, argv, "hDb:p:d:")) != -1) {
@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
     default:
     case 'h':
       std::cout
-        << "Usage:\n\t./qadmus [options]\n"
+        << "Usage:\n\t./harq [options]\n"
         << "Options:\n"
         << "\t-D:\t\t daemon\n"
         << "\t-b host-ip:\t listen host\n"

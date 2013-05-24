@@ -1,6 +1,6 @@
-require 'qadmus/client'
+require 'harq/client'
 
-class Qadmus
+class Harq
   VERSION = '1.0.0'
 
   def initialize(host="localhost", port=7621)
