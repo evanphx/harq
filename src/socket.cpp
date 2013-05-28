@@ -11,7 +11,7 @@
 #include <fcntl.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 
-WriteStatus Socket::write(wire::Message& msg) {
+WriteStatus Socket::write(const wire::Message& msg) {
   std::string out;
 
   if(!msg.SerializeToString(&out)) {
@@ -22,7 +22,7 @@ WriteStatus Socket::write(wire::Message& msg) {
   return write_raw(out);
 }
 
-WriteStatus Socket::write_raw(std::string val) {
+WriteStatus Socket::write_raw(const std::string val) {
   union sz {
     char buf[4];
     uint32_t i;
@@ -52,7 +52,7 @@ WriteStatus Socket::write_raw(std::string val) {
   return stat;
 }
 
-void Socket::write_block(wire::Message& msg) {
+void Socket::write_block(const wire::Message& msg) {
   WriteStatus stat = write(msg);
   while(stat != eOk) {
     fd_set fds;

@@ -10,10 +10,10 @@ Buffer::Buffer(size_t size)
 {}
 
 ssize_t Buffer::fill(int fd) {
-  size_t left = limit_ - write_pos_;
+  const size_t left = limit_ - write_pos_;
 
   for(;;) {
-    ssize_t got = recv(fd, write_pos_, left, 0);
+    const ssize_t got = recv(fd, write_pos_, left, 0);
     if(got > 0) {
       write_pos_ += got;
     } else if(got == -1 && errno == EINTR) {
@@ -25,7 +25,7 @@ ssize_t Buffer::fill(int fd) {
 }
 
 int Buffer::read_int32() {
-  int s = ntohl(*((int*)read_pos_));
+  const int s = ntohl(*((int*)read_pos_));
   advance_read(4);
   return s;
 }

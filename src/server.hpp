@@ -15,8 +15,11 @@
 #include "safe_ref.hpp"
 
 #include "wire.pb.h"
+#include "option.hpp"
 
 class Connection;
+
+typedef std::list<Connection*> Connections;
 
 namespace wire {
   class Message;
@@ -36,14 +39,20 @@ class Server {
   ev::dynamic_loop loop_;
   ev::io connection_watcher_;
 
-  std::list<Connection*> connections_;
+  Connections connections_;
+  Connections replicas_;
+  Connections taps_;
+
   uint64_t next_id_;
 
   typedef std::map<std::string, Queue*> Queues;
   Queues queues_;
 
 public:
-  int clients_num;
+
+  leveldb::DB* db() {
+    return db_;
+  }
 
   ev::dynamic_loop& loop() {
     return loop_;
@@ -51,6 +60,14 @@ public:
 
   void remove_connection(Connection* con) {
     connections_.remove(con);
+  }
+
+  void add_replica(Connection* con) {
+    replicas_.push_back(con);
+  }
+
+  void add_tap(Connection* con) {
+    taps_.push_back(con);
   }
 
   uint64_t next_id() {
@@ -64,16 +81,9 @@ public:
     return id;
   }
 
-  Queue& queue(std::string name) {
-    Queues::iterator i = queues_.find(name);
-    if(i != queues_.end()) return ref(i->second);
+  bool make_queue(std::string name, Queue::Kind k);
 
-    Queue* q = new Queue(this, name);
-
-    queues_[name] = q;
-
-    return ref(q);
-  }
+  optref<Queue> queue(std::string name);
 
   Server(std::string db_path, std::string hostaddr, int port);
   ~Server();
@@ -81,12 +91,13 @@ public:
   void on_connection(ev::io& w, int revents);
 
   void reserve(std::string dest, bool implicit);
-  void deliver(wire::Message& msg);
+  bool deliver(wire::Message& msg);
 
   void subscribe(Connection* con, std::string dest, bool durable=false);
   void flush(Connection* con, std::string dest);
 
   void stat(Connection* con, std::string name);
+  void connect_replica(std::string host, int port);
 };
 
 

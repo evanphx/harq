@@ -17,12 +17,33 @@ message Action {
   optional uint64 id = 3;
 }
 
+message MessageRange {
+  required int32 start = 1;
+  required int32 count = 2;
+}
+
 message Queue {
-  required int32 count = 1;
+  required int32 size = 1;
   required bool implicit = 2;
+  repeated MessageRange ranges = 3;
 }
 
 message Stat {
   required string name = 1;
   optional uint32 transient_size = 2;
 }
+
+message ReplicaAction {
+  enum Type {
+    eStart = 0;
+    eReserve = 1;
+  }
+  required Type type = 1;
+  optional bytes payload = 2;
+}
+
+message QueueError {
+  required string queue = 1;
+  optional string error = 2;
+}
+

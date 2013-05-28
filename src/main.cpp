@@ -11,6 +11,7 @@
 #include "util.hpp"
 #include "server.hpp"
 #include "connection.hpp"
+#include "config.hpp"
 
 extern char *optarg;
 
@@ -28,11 +29,12 @@ int main(int argc, char** argv) {
   std::string host = "";
 
   int port=7621;
+  int master_port = -1;
 
   std::string data_dir = "harq.db";
 
   int ch = 0;
-  while((ch = getopt(argc, argv, "hDb:p:d:")) != -1) {
+  while((ch = getopt(argc, argv, "hDb:p:d:m:")) != -1) {
     switch(ch) {
     default:
     case 'h':
@@ -42,7 +44,8 @@ int main(int argc, char** argv) {
         << "\t-D:\t\t daemon\n"
         << "\t-b host-ip:\t listen host\n"
         << "\t-p port:\t listen port\n"
-        << "\t-d data-dir:\t data dir\n";
+        << "\t-d data-dir:\t data dir\n"
+        << "\t-m master:\t master\n";
 
       exit(0);
     case 'D':
@@ -61,6 +64,9 @@ int main(int argc, char** argv) {
     case 'd':
       data_dir = optarg;
       break;
+    case 'm':
+      master_port = atoi(optarg);
+      break;
     }
   }
 
@@ -75,7 +81,18 @@ int main(int argc, char** argv) {
   signal(SIGINT,  sig_term);
   signal(SIGPIPE, SIG_IGN);
 
+  Config cfg("qadmus.cfg");
+  cfg.open();
+  if(!cfg.read()) {
+    std::cout << "Config error: " << cfg.error() << "\n";
+  }
+
+  cfg.show();
+
   Server server(data_dir, host, port);
+  if(master_port > 0) {
+    server.connect_replica("localhost", master_port);
+  }
   server.start();
 
   return 0;

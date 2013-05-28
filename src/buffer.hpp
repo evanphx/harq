@@ -7,7 +7,7 @@
 #include <iostream>
 
 class Buffer {
-  uint8_t* buffer_;
+  uint8_t* const buffer_;
   uint8_t* read_pos_;
   uint8_t* write_pos_;
   uint8_t* limit_;
@@ -28,7 +28,7 @@ public:
   int read_int32();
 
   void advance_read(int size) {
-    uint8_t* ptr = read_pos_ + size;
+    uint8_t* const ptr = read_pos_ + size;
     if(ptr > write_pos_) {
       std::cerr <<
         "Requested to advance further than available data in buffer\n";

@@ -10,7 +10,11 @@ enum ActionType {
   eAck = 6,
   eRequestConfirm = 7,
   eConfirm = 8,
-  eRequestStat = 9
+  eRequestStat = 9,
+  eMakeBroadcastQueue = 10,
+  eMakeTransientQueue = 11,
+  eMakeDurableQueue = 12,
+  eQueueError = 13
 };
 
 #endif

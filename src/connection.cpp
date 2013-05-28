@@ -21,32 +21,32 @@
 
 #define FLOW(str) debugs << "- " << str << "\n"
 
-Connection::Connection(Server *s, int fd)
+Connection::Connection(Server& s, int fd)
   : tap_(false)
   , ack_(false)
   , confirm_(false)
   , closing_(false)
+  , replica_(false)
   , sock_(fd)
-  , read_w_(s->loop())
-  , write_w_(s->loop())
-  , server(s)
+  , read_w_(s.loop())
+  , write_w_(s.loop())
+  , open_(true)
+  , server_(s)
   , buffer_(1024)
-  , state(eReadSize)
-  , writer_started(false)
+  , state_(eReadSize)
+  , writer_started_(false)
 {
   read_w_.set<Connection, &Connection::on_readable>(this);
   write_w_.set<Connection, &Connection::on_writable>(this);
 
   sock_.set_nonblock();
-  open=true;
-  server->clients_num++;
 }
 
 Connection::~Connection() {
-  if(open) {
+  if(open_) {
     read_w_.stop();
 
-    if(writer_started){
+    if(writer_started_) {
       write_w_.stop();
     }
 
@@ -60,8 +60,6 @@ Connection::~Connection() {
       break;
     }
   }
-
-  server->clients_num--;
 }
 
 void Connection::start() {
@@ -69,11 +67,26 @@ void Connection::start() {
   read_w_.start(sock_.fd, EV_READ);
 }
 
+void Connection::start_replica() {
+  FLOW("New Replica Connection");
+  read_w_.start(sock_.fd, EV_READ);
+
+  wire::ReplicaAction act;
+  act.set_type(wire::ReplicaAction::eStart);
+
+  wire::Message msg;
+  msg.set_destination("+replica");
+  msg.set_payload(act.SerializeAsString());
+
+  write(msg);
+}
+
 void Connection::clear_ack(uint64_t id) {
   FLOW("Clear Ack");
   AckMap::iterator i = to_ack_.find(id);
 
   if(i != to_ack_.end()) {
+    i->second.queue.acked(i->second);
     to_ack_.erase(i);
     debugs << "Successfully acked " << id << "\n";
   } else {
@@ -81,29 +94,32 @@ void Connection::clear_ack(uint64_t id) {
   }
 }
 
-void Connection::handle_action(wire::Action& act) {
+void Connection::handle_action(const wire::Action& act) {
   ActionType type = (ActionType)act.type();
 
   switch(type) {
   case eSubscribe:
     FLOW("ACT eSubscribe");
     subscriptions_.push_back(act.payload());
-    server->subscribe(this, act.payload());
-    server->flush(this, act.payload());
+    server_.subscribe(this, act.payload());
+    server_.flush(this, act.payload());
     break;
   case eTap:
     FLOW("ACT eTap");
-    tap_ = true;
+    if(!tap_) {
+      tap_ = true;
+      server_.add_tap(this);
+    }
     break;
   case eDurableSubscribe:
     FLOW("ACT eDurableSubscribe");
     subscriptions_.push_back(act.payload());
-    server->subscribe(this, act.payload(), true);
-    server->reserve(act.payload(), false);
+    server_.subscribe(this, act.payload(), true);
+    server_.reserve(act.payload(), false);
     // fallthrough to flush also
   case eFlush:
     FLOW("ACT eFlush");
-    server->flush(this, act.payload());
+    server_.flush(this, act.payload());
     break;
   case eRequestAck:
     FLOW("ACT eRequestAck");
@@ -127,7 +143,19 @@ void Connection::handle_action(wire::Action& act) {
     break;
   case eRequestStat:
     FLOW("ACT eRequestStat");
-    server->stat(this, act.payload());
+    server_.stat(this, act.payload());
+    break;
+  case eMakeBroadcastQueue:
+    FLOW("ACT eMakeBroadcastQueue");
+    make_queue(act.payload(), Queue::eBroadcast);
+    break;
+  case eMakeTransientQueue:
+    FLOW("ACT eMakeTransientQueue");
+    make_queue(act.payload(), Queue::eTransient);
+    break;
+  case eMakeDurableQueue:
+    FLOW("ACT eMakeDurableQueue");
+    make_queue(act.payload(), Queue::eDurable);
     break;
   default:
     std::cerr << "Received unknown action type: " << act.type() << "\n";
@@ -135,7 +163,46 @@ void Connection::handle_action(wire::Action& act) {
   }
 }
 
-void Connection::handle_message(wire::Message& msg) {
+void Connection::make_queue(std::string name, Queue::Kind k) {
+  if(!server_.make_queue(name, k)) {
+    send_error(name, "Unable to change queue type");
+  }
+}
+
+void Connection::send_error(std::string name, std::string error) {
+  wire::QueueError err;
+  err.set_queue(name);
+  err.set_error(error);
+
+  wire::Action act;
+  act.set_type(eQueueError);
+  act.set_payload(err.SerializeAsString());
+
+  wire::Message msg;
+  msg.set_destination("+");
+  msg.set_payload(act.SerializeAsString());
+
+  write(msg);
+}
+
+void Connection::handle_replica(const wire::ReplicaAction& act) {
+  switch(act.type()) {
+  case wire::ReplicaAction::eStart:
+    if(!replica_) {
+      server_.add_replica(this);
+      replica_ = true;
+    }
+    break;
+  case wire::ReplicaAction::eReserve:
+    server_.reserve(act.payload(), false);
+    break;
+  default:
+    std::cerr << "Received unknown replica action: " << act.type() << "\n";
+    return;
+  }
+}
+
+void Connection::handle_message(const wire::Message& msg) {
   std::string dest = msg.destination();
 
   if(dest == std::string("+")) {
@@ -148,10 +215,21 @@ void Connection::handle_message(wire::Message& msg) {
     } else {
       std::cerr << "Unable to parse message send to '+'\n";
     }
-  } else {
-    server->deliver(msg);
+  } else if(dest == std::string("+replica")) {
+    wire::ReplicaAction act;
 
-    if(confirm_) {
+    FLOW("REPLICA ACTION");
+
+    if(act.ParseFromString(msg.payload())) {
+      handle_replica(act);
+    } else {
+      std::cerr << "Unable to parse message send to '+replica'\n";
+    }
+  } else {
+    wire::Message out = msg;
+    if(!server_.deliver(out)) {
+      send_error(dest, "No such queue");
+    } else if(confirm_) {
       // If the sender didn't specify a confirm id, it will
       // be 0 by default, which is fine. They can sort out what that means
       // on their own.
@@ -179,7 +257,7 @@ void Connection::handle_message(wire::Message& msg) {
   }
 }
 
-void Connection::write(wire::Message& msg) {
+void Connection::write(const wire::Message& msg) {
   switch(sock_.write(msg)) {
   case eOk:
     return;
@@ -188,30 +266,32 @@ void Connection::write(wire::Message& msg) {
     closing_ = true;
     return;
   case eWouldBlock:
-    writer_started = true;
+    writer_started_ = true;
     write_w_.start(sock_.fd, EV_WRITE);
     debugs << "Starting writable watcher\n";
     return;
   }
 }
 
-bool Connection::deliver(wire::Message& msg) {
-  if(closing_) return false;
-
-  std::string dest = msg.destination();
-
-  if(tap_) {
-    write(msg);
-    return false;
-  }
+DeliverStatus Connection::deliver(const wire::Message& msg, Queue& from) {
+  if(closing_) return eIgnored;
 
   if(ack_) {
-    to_ack_[server->assign_id(msg)] = msg;
+    wire::Message out;
+    uint64_t id = server_.assign_id(out);
+
+    std::pair<AckMap::iterator, bool> ret;
+
+    ret = to_ack_.insert(AckMap::value_type(id, AckRecord(out, from)));
+
+    from.recorded_ack(ret.first->second);
+
+    write(out);
+    return eWaitForAck;
   }
 
   write(msg);
-  
-  return true;
+  return eConsumed;
 }
 
 bool Connection::do_read(int revents) {
@@ -236,7 +316,7 @@ bool Connection::do_read(int revents) {
 
   // Allow us to parse multiple messages in one read
   for(;;) {
-    if(state == eReadSize) {
+    if(state_ == eReadSize) {
       FLOW("READ SIZE");
 
       debugs << "avail=" << buffer_.read_available() << "\n";
@@ -247,14 +327,14 @@ bool Connection::do_read(int revents) {
 
       debugs << "msg size=" << size << "\n";
 
-      need = size;
+      need_ = size;
 
-      state = eReadMessage;
+      state_ = eReadMessage;
     }
 
     debugs << "avail=" << buffer_.read_available() << "\n";
 
-    if(buffer_.read_available() < need) {
+    if(buffer_.read_available() < need_) {
       FLOW("NEED MORE");
       return true;
     }
@@ -263,9 +343,9 @@ bool Connection::do_read(int revents) {
 
     wire::Message msg;
 
-    bool ok = msg.ParseFromArray(buffer_.read_pos(), need);
+    bool ok = msg.ParseFromArray(buffer_.read_pos(), need_);
 
-    buffer_.advance_read(need);
+    buffer_.advance_read(need_);
 
     if(ok) {
       handle_message(msg);
@@ -275,7 +355,7 @@ bool Connection::do_read(int revents) {
       return false;
     }
 
-    state = eReadSize;
+    state_ = eReadSize;
   }
 
   return true;
@@ -290,17 +370,20 @@ void Connection::on_readable(ev::io& w, int revents)
         i != to_ack_.end();
         ++i) {
       FLOW("Persisting un-ack'd message");
-      server->reserve(i->second.destination(), true);
-      server->deliver(i->second);
+      server_.reserve(i->second.msg.destination(), true);
+      server_.deliver(i->second.msg);
     }
 
     for(std::list<std::string>::iterator i = subscriptions_.begin();
         i != subscriptions_.end();
         ++i) {
-      server->queue(*i).unsubscribe(this);
+      optref<Queue> ref = server_.queue(*i);
+      if(ref.set_p()) {
+        ref->unsubscribe(this);
+      }
     }
 
-    server->remove_connection(this);
+    server_.remove_connection(this);
     delete this;
     return;
   }
@@ -312,13 +395,13 @@ void Connection::on_writable(ev::io& w, int revents) {
   switch(sock_.flush()) {
   case eOk:
     debugs << "Flushed socket in writable event\n";
-    writer_started = false;
+    writer_started_ = false;
     write_w_.stop();
     return;
   case eFailure:
     std::cerr << "Error writing to socket in writable event\n";
     closing_ = true;
-    writer_started = false;
+    writer_started_ = false;
     write_w_.stop();
     return;
   case eWouldBlock:
