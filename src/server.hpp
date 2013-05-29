@@ -81,7 +81,10 @@ public:
     return id;
   }
 
+  bool read_queues();
+
   bool make_queue(std::string name, Queue::Kind k);
+  bool add_declaration(std::string name, Queue::Kind k);
 
   optref<Queue> queue(std::string name);
 

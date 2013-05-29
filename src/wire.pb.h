@@ -41,6 +41,8 @@ class Queue;
 class Stat;
 class ReplicaAction;
 class QueueError;
+class QueueDeclaration;
+class QueueConfiguration;
 
 enum ReplicaAction_Type {
   ReplicaAction_Type_eStart = 0,
@@ -60,6 +62,26 @@ inline bool ReplicaAction_Type_Parse(
     const ::std::string& name, ReplicaAction_Type* value) {
   return ::google::protobuf::internal::ParseNamedEnum<ReplicaAction_Type>(
     ReplicaAction_Type_descriptor(), name, value);
+}
+enum QueueDeclaration_Type {
+  QueueDeclaration_Type_eBroadcast = 0,
+  QueueDeclaration_Type_eTransient = 1,
+  QueueDeclaration_Type_eDurable = 2
+};
+bool QueueDeclaration_Type_IsValid(int value);
+const QueueDeclaration_Type QueueDeclaration_Type_Type_MIN = QueueDeclaration_Type_eBroadcast;
+const QueueDeclaration_Type QueueDeclaration_Type_Type_MAX = QueueDeclaration_Type_eDurable;
+const int QueueDeclaration_Type_Type_ARRAYSIZE = QueueDeclaration_Type_Type_MAX + 1;
+
+const ::google::protobuf::EnumDescriptor* QueueDeclaration_Type_descriptor();
+inline const ::std::string& QueueDeclaration_Type_Name(QueueDeclaration_Type value) {
+  return ::google::protobuf::internal::NameOfEnum(
+    QueueDeclaration_Type_descriptor(), value);
+}
+inline bool QueueDeclaration_Type_Parse(
+    const ::std::string& name, QueueDeclaration_Type* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<QueueDeclaration_Type>(
+    QueueDeclaration_Type_descriptor(), name, value);
 }
 // ===================================================================
 
@@ -380,32 +402,20 @@ class MessageRange : public ::google::protobuf::Message {
   inline ::google::protobuf::int32 count() const;
   inline void set_count(::google::protobuf::int32 value);
 
-  // optional .wire.MessageRange tail = 3;
-  inline bool has_tail() const;
-  inline void clear_tail();
-  static const int kTailFieldNumber = 3;
-  inline const ::wire::MessageRange& tail() const;
-  inline ::wire::MessageRange* mutable_tail();
-  inline ::wire::MessageRange* release_tail();
-  inline void set_allocated_tail(::wire::MessageRange* tail);
-
   // @@protoc_insertion_point(class_scope:wire.MessageRange)
  private:
   inline void set_has_start();
   inline void clear_has_start();
   inline void set_has_count();
   inline void clear_has_count();
-  inline void set_has_tail();
-  inline void clear_has_tail();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::google::protobuf::int32 start_;
   ::google::protobuf::int32 count_;
-  ::wire::MessageRange* tail_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
 
   friend void  protobuf_AddDesc_wire_2eproto();
   friend void protobuf_AssignDesc_wire_2eproto();
@@ -477,17 +487,10 @@ class Queue : public ::google::protobuf::Message {
   inline ::google::protobuf::int32 size() const;
   inline void set_size(::google::protobuf::int32 value);
 
-  // required bool implicit = 2;
-  inline bool has_implicit() const;
-  inline void clear_implicit();
-  static const int kImplicitFieldNumber = 2;
-  inline bool implicit() const;
-  inline void set_implicit(bool value);
-
-  // repeated .wire.MessageRange ranges = 3;
+  // repeated .wire.MessageRange ranges = 2;
   inline int ranges_size() const;
   inline void clear_ranges();
-  static const int kRangesFieldNumber = 3;
+  static const int kRangesFieldNumber = 2;
   inline const ::wire::MessageRange& ranges(int index) const;
   inline ::wire::MessageRange* mutable_ranges(int index);
   inline ::wire::MessageRange* add_ranges();
@@ -500,17 +503,14 @@ class Queue : public ::google::protobuf::Message {
  private:
   inline void set_has_size();
   inline void clear_has_size();
-  inline void set_has_implicit();
-  inline void clear_has_implicit();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
-  ::google::protobuf::int32 size_;
-  bool implicit_;
   ::google::protobuf::RepeatedPtrField< ::wire::MessageRange > ranges_;
+  ::google::protobuf::int32 size_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
 
   friend void  protobuf_AddDesc_wire_2eproto();
   friend void protobuf_AssignDesc_wire_2eproto();
@@ -587,27 +587,47 @@ class Stat : public ::google::protobuf::Message {
   inline ::std::string* release_name();
   inline void set_allocated_name(::std::string* name);
 
-  // optional uint32 transient_size = 2;
+  // required bool exists = 2;
+  inline bool has_exists() const;
+  inline void clear_exists();
+  static const int kExistsFieldNumber = 2;
+  inline bool exists() const;
+  inline void set_exists(bool value);
+
+  // optional uint32 transient_size = 3;
   inline bool has_transient_size() const;
   inline void clear_transient_size();
-  static const int kTransientSizeFieldNumber = 2;
+  static const int kTransientSizeFieldNumber = 3;
   inline ::google::protobuf::uint32 transient_size() const;
   inline void set_transient_size(::google::protobuf::uint32 value);
+
+  // optional uint32 durable_size = 4;
+  inline bool has_durable_size() const;
+  inline void clear_durable_size();
+  static const int kDurableSizeFieldNumber = 4;
+  inline ::google::protobuf::uint32 durable_size() const;
+  inline void set_durable_size(::google::protobuf::uint32 value);
 
   // @@protoc_insertion_point(class_scope:wire.Stat)
  private:
   inline void set_has_name();
   inline void clear_has_name();
+  inline void set_has_exists();
+  inline void clear_has_exists();
   inline void set_has_transient_size();
   inline void clear_has_transient_size();
+  inline void set_has_durable_size();
+  inline void clear_has_durable_size();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::std::string* name_;
+  bool exists_;
   ::google::protobuf::uint32 transient_size_;
+  ::google::protobuf::uint32 durable_size_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
 
   friend void  protobuf_AddDesc_wire_2eproto();
   friend void protobuf_AssignDesc_wire_2eproto();
@@ -838,6 +858,213 @@ class QueueError : public ::google::protobuf::Message {
 
   void InitAsDefaultInstance();
   static QueueError* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class QueueDeclaration : public ::google::protobuf::Message {
+ public:
+  QueueDeclaration();
+  virtual ~QueueDeclaration();
+
+  QueueDeclaration(const QueueDeclaration& from);
+
+  inline QueueDeclaration& operator=(const QueueDeclaration& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const QueueDeclaration& default_instance();
+
+  void Swap(QueueDeclaration* other);
+
+  // implements Message ----------------------------------------------
+
+  QueueDeclaration* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const QueueDeclaration& from);
+  void MergeFrom(const QueueDeclaration& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  typedef QueueDeclaration_Type Type;
+  static const Type eBroadcast = QueueDeclaration_Type_eBroadcast;
+  static const Type eTransient = QueueDeclaration_Type_eTransient;
+  static const Type eDurable = QueueDeclaration_Type_eDurable;
+  static inline bool Type_IsValid(int value) {
+    return QueueDeclaration_Type_IsValid(value);
+  }
+  static const Type Type_MIN =
+    QueueDeclaration_Type_Type_MIN;
+  static const Type Type_MAX =
+    QueueDeclaration_Type_Type_MAX;
+  static const int Type_ARRAYSIZE =
+    QueueDeclaration_Type_Type_ARRAYSIZE;
+  static inline const ::google::protobuf::EnumDescriptor*
+  Type_descriptor() {
+    return QueueDeclaration_Type_descriptor();
+  }
+  static inline const ::std::string& Type_Name(Type value) {
+    return QueueDeclaration_Type_Name(value);
+  }
+  static inline bool Type_Parse(const ::std::string& name,
+      Type* value) {
+    return QueueDeclaration_Type_Parse(name, value);
+  }
+
+  // accessors -------------------------------------------------------
+
+  // required string name = 1;
+  inline bool has_name() const;
+  inline void clear_name();
+  static const int kNameFieldNumber = 1;
+  inline const ::std::string& name() const;
+  inline void set_name(const ::std::string& value);
+  inline void set_name(const char* value);
+  inline void set_name(const char* value, size_t size);
+  inline ::std::string* mutable_name();
+  inline ::std::string* release_name();
+  inline void set_allocated_name(::std::string* name);
+
+  // required .wire.QueueDeclaration.Type type = 2;
+  inline bool has_type() const;
+  inline void clear_type();
+  static const int kTypeFieldNumber = 2;
+  inline ::wire::QueueDeclaration_Type type() const;
+  inline void set_type(::wire::QueueDeclaration_Type value);
+
+  // @@protoc_insertion_point(class_scope:wire.QueueDeclaration)
+ private:
+  inline void set_has_name();
+  inline void clear_has_name();
+  inline void set_has_type();
+  inline void clear_has_type();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::std::string* name_;
+  int type_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+
+  friend void  protobuf_AddDesc_wire_2eproto();
+  friend void protobuf_AssignDesc_wire_2eproto();
+  friend void protobuf_ShutdownFile_wire_2eproto();
+
+  void InitAsDefaultInstance();
+  static QueueDeclaration* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class QueueConfiguration : public ::google::protobuf::Message {
+ public:
+  QueueConfiguration();
+  virtual ~QueueConfiguration();
+
+  QueueConfiguration(const QueueConfiguration& from);
+
+  inline QueueConfiguration& operator=(const QueueConfiguration& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const QueueConfiguration& default_instance();
+
+  void Swap(QueueConfiguration* other);
+
+  // implements Message ----------------------------------------------
+
+  QueueConfiguration* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const QueueConfiguration& from);
+  void MergeFrom(const QueueConfiguration& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // repeated .wire.QueueDeclaration queues = 1;
+  inline int queues_size() const;
+  inline void clear_queues();
+  static const int kQueuesFieldNumber = 1;
+  inline const ::wire::QueueDeclaration& queues(int index) const;
+  inline ::wire::QueueDeclaration* mutable_queues(int index);
+  inline ::wire::QueueDeclaration* add_queues();
+  inline const ::google::protobuf::RepeatedPtrField< ::wire::QueueDeclaration >&
+      queues() const;
+  inline ::google::protobuf::RepeatedPtrField< ::wire::QueueDeclaration >*
+      mutable_queues();
+
+  // @@protoc_insertion_point(class_scope:wire.QueueConfiguration)
+ private:
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::google::protobuf::RepeatedPtrField< ::wire::QueueDeclaration > queues_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
+
+  friend void  protobuf_AddDesc_wire_2eproto();
+  friend void protobuf_AssignDesc_wire_2eproto();
+  friend void protobuf_ShutdownFile_wire_2eproto();
+
+  void InitAsDefaultInstance();
+  static QueueConfiguration* default_instance_;
 };
 // ===================================================================
 
@@ -1240,44 +1467,6 @@ inline void MessageRange::set_count(::google::protobuf::int32 value) {
   count_ = value;
 }
 
-// optional .wire.MessageRange tail = 3;
-inline bool MessageRange::has_tail() const {
-  return (_has_bits_[0] & 0x00000004u) != 0;
-}
-inline void MessageRange::set_has_tail() {
-  _has_bits_[0] |= 0x00000004u;
-}
-inline void MessageRange::clear_has_tail() {
-  _has_bits_[0] &= ~0x00000004u;
-}
-inline void MessageRange::clear_tail() {
-  if (tail_ != NULL) tail_->::wire::MessageRange::Clear();
-  clear_has_tail();
-}
-inline const ::wire::MessageRange& MessageRange::tail() const {
-  return tail_ != NULL ? *tail_ : *default_instance_->tail_;
-}
-inline ::wire::MessageRange* MessageRange::mutable_tail() {
-  set_has_tail();
-  if (tail_ == NULL) tail_ = new ::wire::MessageRange;
-  return tail_;
-}
-inline ::wire::MessageRange* MessageRange::release_tail() {
-  clear_has_tail();
-  ::wire::MessageRange* temp = tail_;
-  tail_ = NULL;
-  return temp;
-}
-inline void MessageRange::set_allocated_tail(::wire::MessageRange* tail) {
-  delete tail_;
-  tail_ = tail;
-  if (tail) {
-    set_has_tail();
-  } else {
-    clear_has_tail();
-  }
-}
-
 // -------------------------------------------------------------------
 
 // Queue
@@ -1304,29 +1493,7 @@ inline void Queue::set_size(::google::protobuf::int32 value) {
   size_ = value;
 }
 
-// required bool implicit = 2;
-inline bool Queue::has_implicit() const {
-  return (_has_bits_[0] & 0x00000002u) != 0;
-}
-inline void Queue::set_has_implicit() {
-  _has_bits_[0] |= 0x00000002u;
-}
-inline void Queue::clear_has_implicit() {
-  _has_bits_[0] &= ~0x00000002u;
-}
-inline void Queue::clear_implicit() {
-  implicit_ = false;
-  clear_has_implicit();
-}
-inline bool Queue::implicit() const {
-  return implicit_;
-}
-inline void Queue::set_implicit(bool value) {
-  set_has_implicit();
-  implicit_ = value;
-}
-
-// repeated .wire.MessageRange ranges = 3;
+// repeated .wire.MessageRange ranges = 2;
 inline int Queue::ranges_size() const {
   return ranges_.size();
 }
@@ -1425,15 +1592,37 @@ inline void Stat::set_allocated_name(::std::string* name) {
   }
 }
 
-// optional uint32 transient_size = 2;
-inline bool Stat::has_transient_size() const {
+// required bool exists = 2;
+inline bool Stat::has_exists() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-inline void Stat::set_has_transient_size() {
+inline void Stat::set_has_exists() {
   _has_bits_[0] |= 0x00000002u;
 }
-inline void Stat::clear_has_transient_size() {
+inline void Stat::clear_has_exists() {
   _has_bits_[0] &= ~0x00000002u;
+}
+inline void Stat::clear_exists() {
+  exists_ = false;
+  clear_has_exists();
+}
+inline bool Stat::exists() const {
+  return exists_;
+}
+inline void Stat::set_exists(bool value) {
+  set_has_exists();
+  exists_ = value;
+}
+
+// optional uint32 transient_size = 3;
+inline bool Stat::has_transient_size() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void Stat::set_has_transient_size() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void Stat::clear_has_transient_size() {
+  _has_bits_[0] &= ~0x00000004u;
 }
 inline void Stat::clear_transient_size() {
   transient_size_ = 0u;
@@ -1445,6 +1634,28 @@ inline ::google::protobuf::uint32 Stat::transient_size() const {
 inline void Stat::set_transient_size(::google::protobuf::uint32 value) {
   set_has_transient_size();
   transient_size_ = value;
+}
+
+// optional uint32 durable_size = 4;
+inline bool Stat::has_durable_size() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+inline void Stat::set_has_durable_size() {
+  _has_bits_[0] |= 0x00000008u;
+}
+inline void Stat::clear_has_durable_size() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline void Stat::clear_durable_size() {
+  durable_size_ = 0u;
+  clear_has_durable_size();
+}
+inline ::google::protobuf::uint32 Stat::durable_size() const {
+  return durable_size_;
+}
+inline void Stat::set_durable_size(::google::protobuf::uint32 value) {
+  set_has_durable_size();
+  durable_size_ = value;
 }
 
 // -------------------------------------------------------------------
@@ -1688,6 +1899,132 @@ inline void QueueError::set_allocated_error(::std::string* error) {
   }
 }
 
+// -------------------------------------------------------------------
+
+// QueueDeclaration
+
+// required string name = 1;
+inline bool QueueDeclaration::has_name() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void QueueDeclaration::set_has_name() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void QueueDeclaration::clear_has_name() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void QueueDeclaration::clear_name() {
+  if (name_ != &::google::protobuf::internal::kEmptyString) {
+    name_->clear();
+  }
+  clear_has_name();
+}
+inline const ::std::string& QueueDeclaration::name() const {
+  return *name_;
+}
+inline void QueueDeclaration::set_name(const ::std::string& value) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(value);
+}
+inline void QueueDeclaration::set_name(const char* value) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(value);
+}
+inline void QueueDeclaration::set_name(const char* value, size_t size) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* QueueDeclaration::mutable_name() {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  return name_;
+}
+inline ::std::string* QueueDeclaration::release_name() {
+  clear_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = name_;
+    name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void QueueDeclaration::set_allocated_name(::std::string* name) {
+  if (name_ != &::google::protobuf::internal::kEmptyString) {
+    delete name_;
+  }
+  if (name) {
+    set_has_name();
+    name_ = name;
+  } else {
+    clear_has_name();
+    name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// required .wire.QueueDeclaration.Type type = 2;
+inline bool QueueDeclaration::has_type() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void QueueDeclaration::set_has_type() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void QueueDeclaration::clear_has_type() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void QueueDeclaration::clear_type() {
+  type_ = 0;
+  clear_has_type();
+}
+inline ::wire::QueueDeclaration_Type QueueDeclaration::type() const {
+  return static_cast< ::wire::QueueDeclaration_Type >(type_);
+}
+inline void QueueDeclaration::set_type(::wire::QueueDeclaration_Type value) {
+  assert(::wire::QueueDeclaration_Type_IsValid(value));
+  set_has_type();
+  type_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// QueueConfiguration
+
+// repeated .wire.QueueDeclaration queues = 1;
+inline int QueueConfiguration::queues_size() const {
+  return queues_.size();
+}
+inline void QueueConfiguration::clear_queues() {
+  queues_.Clear();
+}
+inline const ::wire::QueueDeclaration& QueueConfiguration::queues(int index) const {
+  return queues_.Get(index);
+}
+inline ::wire::QueueDeclaration* QueueConfiguration::mutable_queues(int index) {
+  return queues_.Mutable(index);
+}
+inline ::wire::QueueDeclaration* QueueConfiguration::add_queues() {
+  return queues_.Add();
+}
+inline const ::google::protobuf::RepeatedPtrField< ::wire::QueueDeclaration >&
+QueueConfiguration::queues() const {
+  return queues_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::wire::QueueDeclaration >*
+QueueConfiguration::mutable_queues() {
+  return &queues_;
+}
+
 
 // @@protoc_insertion_point(namespace_scope)
 
@@ -1700,6 +2037,10 @@ namespace protobuf {
 template <>
 inline const EnumDescriptor* GetEnumDescriptor< ::wire::ReplicaAction_Type>() {
   return ::wire::ReplicaAction_Type_descriptor();
+}
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ::wire::QueueDeclaration_Type>() {
+  return ::wire::QueueDeclaration_Type_descriptor();
 }
 
 }  // namespace google

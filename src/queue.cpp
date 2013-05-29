@@ -19,6 +19,18 @@ void Queue::queue(const wire::Message& msg) {
   transient_.push_back(mp);
 }
 
+unsigned Queue::durable_messages() {
+  std::string val;
+  leveldb::Status s = server_.db()->Get(leveldb::ReadOptions(), name_, &val);
+
+  if(!s.ok()) return 0;
+
+  wire::Queue qi;
+  if(!qi.ParseFromString(val)) return 0;
+
+  return qi.size();
+}
+
 bool Queue::change_kind(Queue::Kind k) {
   switch(k) {
   case eBroadcast:
@@ -138,16 +150,11 @@ void Queue::flush(Connection* con, leveldb::DB* db) {
     }
   }
 
-  if(qi.implicit()) {
-    s = db->Delete(leveldb::WriteOptions(), name_);
-    debugs << "Deleted implicit queue: " << name_ << "\n";
-  } else {
-    // Don't reuse qi because it might be corrupt in same way, so just
-    // make a fresh one.
-    wire::Queue new_qi;
-    new_qi.set_size(0);
-    s = db->Put(leveldb::WriteOptions(), name_, new_qi.SerializeAsString());
-  }
+  // Don't reuse qi because it might be corrupt in same way, so just
+  // make a fresh one.
+  wire::Queue new_qi;
+  new_qi.set_size(0);
+  s = db->Put(leveldb::WriteOptions(), name_, new_qi.SerializeAsString());
 
   if(!s.ok()) {
     std::cerr << "Unable to reset " << name_ << "\n";

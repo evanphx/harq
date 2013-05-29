@@ -41,7 +41,9 @@ class Harq
       include Beefcake::Message
 
       required :name, :string, 1
-      optional :transient_size, :uint32, 2
+      required :name, :bool, 2
+      optional :transient_size, :uint32, 3
+      optional :durable_size, :uint32, 4
     end
   end
 end

@@ -47,6 +47,18 @@ class Harq
       send_action :type => 9, :payload => dest
     end
 
+    def make_broadcast(dest)
+      send_action :type => 10, :payload => dest
+    end
+
+    def make_transient(dest)
+      send_action :type => 11, :payload => dest
+    end
+
+    def make_durable(dest)
+      send_action :type => 12, :payload => dest
+    end
+
     def broadcast(dest, payload)
       msg = Wire::Message.new \
               :destination => dest,
@@ -55,14 +67,7 @@ class Harq
       send_message msg
     end
 
-    def queue(dest, payload)
-      msg = Wire::Message.new \
-              :destination => dest,
-              :payload => payload,
-              :flags => 1
-
-      send_message msg
-    end
+    alias_method :queue, :broadcast
 
     def read
       read_message.payload

@@ -2,7 +2,7 @@
 uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
 
 CFLAGS += -Wall -Ivendor/leveldb/include -std=c99
-CXXFLAGS += -Wall -Ivendor/leveldb/include
+CXXFLAGS += -Wall -Weffc++ -Woverloaded-virtual -Wsign-promo -Ivendor/leveldb/include
 LDFLAGS += vendor/libleveldb.a -lsnappy -lm -lev -lprotobuf -lsqlite3
 
 ifeq ($(uname_S),Linux)

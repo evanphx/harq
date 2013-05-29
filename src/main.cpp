@@ -18,10 +18,15 @@ extern char *optarg;
 Server *server=NULL;
 
 extern int cli(int argc, char** argv);
+extern int fsck(int argc, char** argv);
 
 int main(int argc, char** argv) {
   if(argv[1] && strcmp(argv[1], "cli") == 0) {
     return cli(argc-1, argv+1);
+  }
+
+  if(argv[1] && strcmp(argv[1], "fsck") == 0) {
+    return fsck(argc-1,argv+1);
   }
 
   bool daemon = false;
@@ -90,6 +95,8 @@ int main(int argc, char** argv) {
   cfg.show();
 
   Server server(data_dir, host, port);
+  if(!server.read_queues()) return 1;
+
   if(master_port > 0) {
     server.connect_replica("localhost", master_port);
   }

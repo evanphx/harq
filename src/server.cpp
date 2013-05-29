@@ -72,6 +72,110 @@ Server::~Server() {
   close(fd_);
 }
 
+bool Server::read_queues() {
+  std::string val;
+  leveldb::Status s = db_->Get(leveldb::ReadOptions(), "!harq.config", &val);
+  if(s.IsNotFound()) return true;
+  if(!s.ok()) {
+    std::cerr << "Corrupt harq.config detected!\n";
+    return false;
+  }
+
+  wire::QueueConfiguration cfg;
+  if(!cfg.ParseFromString(val)) {
+    std::cerr << "Corrupt harq.config detected!\n";
+    return false;
+  }
+
+  for(int i = 0; i < cfg.queues_size(); i++) {
+    const wire::QueueDeclaration& decl = cfg.queues(i);
+    Queue::Kind k;
+
+    // Don't couple the enum values to the disk values, that's why
+    // we do this.
+    switch(decl.type()) {
+    case wire::QueueDeclaration::eBroadcast:
+      k = Queue::eBroadcast;
+      break;
+    case wire::QueueDeclaration::eTransient:
+      k = Queue::eTransient;
+      break;
+    case wire::QueueDeclaration::eDurable:
+      k = Queue::eDurable;
+      break;
+    default:
+      std::cerr << "Corrupt queue declaration (unknown type " << decl.type() << ")\n";
+      return false;
+    }
+
+    if(!make_queue(decl.name(), k)) {
+      std::cerr << "Unable to make queue '" << decl.name() << "'\n";
+      return false;
+    } else {
+      debugs << "Added queue from config: " << decl.name() << "\n";
+    }
+  }
+
+  return true;
+}
+
+bool Server::add_declaration(std::string name, Queue::Kind k) {
+  std::string val;
+  leveldb::Status s = db_->Get(leveldb::ReadOptions(), "!harq.config", &val);
+
+  wire::QueueConfiguration cfg;
+
+  if(s.ok()) {
+    if(!cfg.ParseFromString(val)) {
+      std::cerr << "Corrupt harq.config detected!\n";
+      return false;
+    }
+  } else if(!s.IsNotFound()) {
+    std::cerr << "Corrupt harq.config detected!\n";
+    return false;
+  }
+
+  wire::QueueDeclaration_Type wk;
+
+  switch(k) {
+  case Queue::eBroadcast:
+    wk = wire::QueueDeclaration::eBroadcast;
+    break;
+  case Queue::eTransient:
+    wk = wire::QueueDeclaration::eTransient;
+    break;
+  case Queue::eDurable:
+    wk = wire::QueueDeclaration::eDurable;
+    break;
+  }
+
+  bool wrote = false;
+
+  for(int i = 0; i < cfg.queues_size(); i++) {
+    const wire::QueueDeclaration& decl = cfg.queues(i);
+
+    if(decl.name() == name) {
+      cfg.mutable_queues(i)->set_type(wk);
+      wrote = true;
+      break;
+    }
+  }
+
+  if(!wrote) {
+    wire::QueueDeclaration* decl = cfg.add_queues();
+    decl->set_name(name);
+    decl->set_type(wk);
+  }
+
+  s = db_->Put(leveldb::WriteOptions(), "!harq.config", cfg.SerializeAsString());
+  if(!s.ok()) {
+    std::cerr << "Unable to write harq.config!\n";
+    return false;
+  }
+
+  return true;
+}
+
 optref<Queue> Server::queue(std::string name) {
   Queues::iterator i = queues_.find(name);
   if(i != queues_.end()) return ref(i->second);
@@ -81,14 +185,20 @@ optref<Queue> Server::queue(std::string name) {
 
 bool Server::make_queue(std::string name, Queue::Kind k) {
   Queues::iterator i = queues_.find(name);
+  bool ok;
+
   if(i == queues_.end()) {
     Queue* q = new Queue(ref(this), name, k);
     queues_[name] = q;
     if(k == Queue::eDurable) reserve(name, false);
-    return true;
+    ok = true;
   } else {
-    return i->second->change_kind(k);
+    ok = i->second->change_kind(k);
   }
+
+  if(ok) add_declaration(name, k);
+
+  return ok;
 }
 
 void Server::start() {    
@@ -196,32 +306,12 @@ void Server::reserve(std::string dest, bool implicit) {
   leveldb::Status s = db_->Get(read_options_, dest, &val);
 
   if(s.ok()) {
-    // Upgrade an implicit persistance to an explicit one.
-    if(!implicit) {
-      wire::Queue q;
-      if(!q.ParseFromString(val)) {
-        std::cerr << "Corrupt queue info on disk, resetting..\n";
-      } else if(!q.implicit()) {
-        q.set_implicit(false);
-        s = db_->Put(write_options_, dest, q.SerializeAsString());
-
-        if(!s.ok()) {
-          std::cerr << "Unable to upgrade queue to explicit: " << dest << "\n";
-        } else {
-          debugs << "Upgraded implicit persistance to explicit.\n";
-        }
-
-        return;
-      }
-    } else {
-      debugs << "Already reserved " << dest << "\n";
-      return;
-    }
+    debugs << "Already reserved " << dest << "\n";
+    return;
   }
 
   wire::Queue q;
   q.set_size(0);
-  q.set_implicit(implicit);
 
   s = db_->Put(write_options_, dest, q.SerializeAsString());
   debugs << "Reserved " << dest << "\n";
@@ -272,7 +362,16 @@ void Server::stat(Connection* con, std::string dest) {
 
   wire::Stat stat;
   stat.set_name(dest);
-  stat.set_transient_size(q.set_p() ? q->queued_messages() : -1);
+
+  if(q.set_p()) {
+    stat.set_transient_size(q.set_p() ? q->queued_messages() : -1);
+
+    if(q.set_p() && q->durable_p()) {
+      stat.set_durable_size(q->durable_messages());
+    }
+  } else {
+    stat.set_exists(false);
+  }
 
   wire::Message msg;
   msg.set_destination("+");

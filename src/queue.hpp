@@ -47,12 +47,18 @@ public:
     return transient_.size();
   }
 
+  unsigned durable_messages();
+
   void subscribe(Connection* con) {
     subscribers_.push_back(con);
   }
 
   void unsubscribe(Connection* con) {
     subscribers_.remove(con);
+  }
+
+  bool durable_p() {
+    return kind_ == eDurable;
   }
 
   bool change_kind(Kind k);

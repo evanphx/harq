@@ -24,13 +24,14 @@ message MessageRange {
 
 message Queue {
   required int32 size = 1;
-  required bool implicit = 2;
-  repeated MessageRange ranges = 3;
+  repeated MessageRange ranges = 2;
 }
 
 message Stat {
   required string name = 1;
-  optional uint32 transient_size = 2;
+  required bool exists = 2;
+  optional uint32 transient_size = 3;
+  optional uint32 durable_size = 4;
 }
 
 message ReplicaAction {
@@ -45,5 +46,20 @@ message ReplicaAction {
 message QueueError {
   required string queue = 1;
   optional string error = 2;
+}
+
+message QueueDeclaration {
+  enum Type {
+    eBroadcast = 0;
+    eTransient = 1;
+    eDurable = 2;
+  }
+
+  required string name = 1;
+  required Type type = 2;
+}
+
+message QueueConfiguration {
+  repeated QueueDeclaration queues = 1;
 }
 
