@@ -17,6 +17,11 @@ message Action {
   optional uint64 id = 3;
 }
 
+message BondRequest {
+  required string queue = 1;
+  required string destination = 2;
+}
+
 message MessageRange {
   required int32 start = 1;
   required int32 count = 2;

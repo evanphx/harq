@@ -339,27 +339,20 @@ write:
   }
 }
 
-bool Queue::deliver(Message& msg) {
+void Queue::deliver(Message& msg) {
   // With broadcast, we don't support acks because wtf would that
   // even mean? So we handle it specially and invoke
   // Connection::write to just write the message directly to the
   // client.
   //
   if(kind_ == eBroadcast) {
-    // Make a copy because subscribers_ might be changed if
-    // there is an error with write.
-
-    Connections cons = subscribers_;
-    for(Connections::iterator i = cons.begin();
-        i != cons.end();
+    for(List::iterator i = broadcast_into_.begin();
+        i != broadcast_into_.end();
         ++i) {
-      Connection* con = *i;
-      if(!con->write(msg)) {
-        debugs << "Write error while broadcasting message\n";
-      }
+      (*i)->deliver(msg);
     }
 
-    return true;
+    return;
   }
 
   // So that we can loop if Connection::deliver fails.
@@ -402,8 +395,6 @@ bool Queue::deliver(Message& msg) {
 
     if(con->deliver(msg, ref(this)) != eIgnored) break;
   }
-
-  return true;
 }
 
 void Queue::recorded_ack(AckRecord& rec) {

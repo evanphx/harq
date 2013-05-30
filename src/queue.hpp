@@ -26,11 +26,15 @@ public:
 private:
   typedef std::list<Message> Messages;
   typedef std::list<Connection*> Connections;
+  typedef std::list<Queue*> List;
 
   Server& server_;
   const std::string name_;
   Messages transient_;
   Connections subscribers_;
+
+  List broadcast_into_;
+  List bonded_to_;
 
   Kind kind_;
 
@@ -63,10 +67,15 @@ public:
     return kind_ == eDurable;
   }
 
+  void broadcast_into(Queue* other) {
+    broadcast_into_.push_back(other);
+    other->bonded_to_.push_back(this);
+  }
+
   bool change_kind(Kind k);
 
   void flush(Connection* con, leveldb::DB* db);
-  bool deliver(Message& msg);
+  void deliver(Message& msg);
 
   void recorded_ack(AckRecord& rec);
   void acked(AckRecord& rec);

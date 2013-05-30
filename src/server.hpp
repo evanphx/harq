@@ -132,6 +132,8 @@ public:
   bool remove_message(std::string name, wire::Queue& qi, std::string key);
 
   void write_replicas(const wire::Message& msg);
+
+  void bond(Connection* con, const wire::BondRequest& br);
 };
 
 

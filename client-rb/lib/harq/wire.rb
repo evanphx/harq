@@ -45,5 +45,12 @@ class Harq
       optional :transient_size, :uint32, 3
       optional :durable_size, :uint32, 4
     end
+
+    class BondRequest
+      include Beefcake::Message
+
+      required :queue, :string, 1
+      required :destination, :string, 2
+    end
   end
 end

@@ -36,6 +36,7 @@ void protobuf_ShutdownFile_wire_2eproto();
 
 class Message;
 class Action;
+class BondRequest;
 class MessageRange;
 class Queue;
 class Stat;
@@ -331,6 +332,108 @@ class Action : public ::google::protobuf::Message {
 
   void InitAsDefaultInstance();
   static Action* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class BondRequest : public ::google::protobuf::Message {
+ public:
+  BondRequest();
+  virtual ~BondRequest();
+
+  BondRequest(const BondRequest& from);
+
+  inline BondRequest& operator=(const BondRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const BondRequest& default_instance();
+
+  void Swap(BondRequest* other);
+
+  // implements Message ----------------------------------------------
+
+  BondRequest* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const BondRequest& from);
+  void MergeFrom(const BondRequest& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required string queue = 1;
+  inline bool has_queue() const;
+  inline void clear_queue();
+  static const int kQueueFieldNumber = 1;
+  inline const ::std::string& queue() const;
+  inline void set_queue(const ::std::string& value);
+  inline void set_queue(const char* value);
+  inline void set_queue(const char* value, size_t size);
+  inline ::std::string* mutable_queue();
+  inline ::std::string* release_queue();
+  inline void set_allocated_queue(::std::string* queue);
+
+  // required string destination = 2;
+  inline bool has_destination() const;
+  inline void clear_destination();
+  static const int kDestinationFieldNumber = 2;
+  inline const ::std::string& destination() const;
+  inline void set_destination(const ::std::string& value);
+  inline void set_destination(const char* value);
+  inline void set_destination(const char* value, size_t size);
+  inline ::std::string* mutable_destination();
+  inline ::std::string* release_destination();
+  inline void set_allocated_destination(::std::string* destination);
+
+  // @@protoc_insertion_point(class_scope:wire.BondRequest)
+ private:
+  inline void set_has_queue();
+  inline void clear_has_queue();
+  inline void set_has_destination();
+  inline void clear_has_destination();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::std::string* queue_;
+  ::std::string* destination_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+
+  friend void  protobuf_AddDesc_wire_2eproto();
+  friend void protobuf_AssignDesc_wire_2eproto();
+  friend void protobuf_ShutdownFile_wire_2eproto();
+
+  void InitAsDefaultInstance();
+  static BondRequest* default_instance_;
 };
 // -------------------------------------------------------------------
 
@@ -1417,6 +1520,150 @@ inline ::google::protobuf::uint64 Action::id() const {
 inline void Action::set_id(::google::protobuf::uint64 value) {
   set_has_id();
   id_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// BondRequest
+
+// required string queue = 1;
+inline bool BondRequest::has_queue() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void BondRequest::set_has_queue() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void BondRequest::clear_has_queue() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void BondRequest::clear_queue() {
+  if (queue_ != &::google::protobuf::internal::kEmptyString) {
+    queue_->clear();
+  }
+  clear_has_queue();
+}
+inline const ::std::string& BondRequest::queue() const {
+  return *queue_;
+}
+inline void BondRequest::set_queue(const ::std::string& value) {
+  set_has_queue();
+  if (queue_ == &::google::protobuf::internal::kEmptyString) {
+    queue_ = new ::std::string;
+  }
+  queue_->assign(value);
+}
+inline void BondRequest::set_queue(const char* value) {
+  set_has_queue();
+  if (queue_ == &::google::protobuf::internal::kEmptyString) {
+    queue_ = new ::std::string;
+  }
+  queue_->assign(value);
+}
+inline void BondRequest::set_queue(const char* value, size_t size) {
+  set_has_queue();
+  if (queue_ == &::google::protobuf::internal::kEmptyString) {
+    queue_ = new ::std::string;
+  }
+  queue_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* BondRequest::mutable_queue() {
+  set_has_queue();
+  if (queue_ == &::google::protobuf::internal::kEmptyString) {
+    queue_ = new ::std::string;
+  }
+  return queue_;
+}
+inline ::std::string* BondRequest::release_queue() {
+  clear_has_queue();
+  if (queue_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = queue_;
+    queue_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void BondRequest::set_allocated_queue(::std::string* queue) {
+  if (queue_ != &::google::protobuf::internal::kEmptyString) {
+    delete queue_;
+  }
+  if (queue) {
+    set_has_queue();
+    queue_ = queue;
+  } else {
+    clear_has_queue();
+    queue_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// required string destination = 2;
+inline bool BondRequest::has_destination() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void BondRequest::set_has_destination() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void BondRequest::clear_has_destination() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void BondRequest::clear_destination() {
+  if (destination_ != &::google::protobuf::internal::kEmptyString) {
+    destination_->clear();
+  }
+  clear_has_destination();
+}
+inline const ::std::string& BondRequest::destination() const {
+  return *destination_;
+}
+inline void BondRequest::set_destination(const ::std::string& value) {
+  set_has_destination();
+  if (destination_ == &::google::protobuf::internal::kEmptyString) {
+    destination_ = new ::std::string;
+  }
+  destination_->assign(value);
+}
+inline void BondRequest::set_destination(const char* value) {
+  set_has_destination();
+  if (destination_ == &::google::protobuf::internal::kEmptyString) {
+    destination_ = new ::std::string;
+  }
+  destination_->assign(value);
+}
+inline void BondRequest::set_destination(const char* value, size_t size) {
+  set_has_destination();
+  if (destination_ == &::google::protobuf::internal::kEmptyString) {
+    destination_ = new ::std::string;
+  }
+  destination_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* BondRequest::mutable_destination() {
+  set_has_destination();
+  if (destination_ == &::google::protobuf::internal::kEmptyString) {
+    destination_ = new ::std::string;
+  }
+  return destination_;
+}
+inline ::std::string* BondRequest::release_destination() {
+  clear_has_destination();
+  if (destination_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = destination_;
+    destination_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void BondRequest::set_allocated_destination(::std::string* destination) {
+  if (destination_ != &::google::protobuf::internal::kEmptyString) {
+    delete destination_;
+  }
+  if (destination) {
+    set_has_destination();
+    destination_ = destination;
+  } else {
+    clear_has_destination();
+    destination_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
 }
 
 // -------------------------------------------------------------------

@@ -440,6 +440,18 @@ bool Server::deliver(Message& msg) {
   return true;
 }
 
+void Server::bond(Connection* con, const wire::BondRequest& br) {
+  if(optref<Queue> q = queue(br.queue())) {
+    if(optref<Queue> q2 = queue(br.destination())) {
+      q->broadcast_into(q2.ptr());
+    } else {
+      con->send_error(br.destination(), "No such queue to bond into");
+    }
+  } else {
+    con->send_error(br.queue(), "No such queue to bond at");
+  }
+}
+
 void Server::write_replicas(const wire::Message& msg) {
   for(Connections::iterator i = replicas_.begin();
       i != replicas_.end();) 

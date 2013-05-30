@@ -59,6 +59,15 @@ class Harq
       send_action :type => 12, :payload => dest
     end
 
+    def request_bond(queue, dest)
+      br = Wire::BondRequest.new :queue => queue, :destination => dest
+
+      str = ""
+      br.encode str
+
+      send_action :type => 14, :payload => str
+    end
+
     def broadcast(dest, payload)
       msg = Wire::Message.new \
               :destination => dest,

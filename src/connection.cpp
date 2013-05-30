@@ -160,6 +160,19 @@ void Connection::handle_action(const wire::Action& act) {
     FLOW("ACT eMakeDurableQueue");
     make_queue(act.payload(), Queue::eDurable);
     break;
+  case eBond:
+    FLOW("ACT eBond");
+    {
+      wire::BondRequest br;
+      if(br.ParseFromString(act.payload())) {
+        server_.bond(this, br);
+        debugs << "Bonded a broadcast queue\n";
+      } else {
+        std::cerr << "Recieved malformed bond request\n";
+        send_error("+", "Bad bond request");
+      }
+    }
+    break;
   default:
     std::cerr << "Received unknown action type: " << act.type() << "\n";
     break;

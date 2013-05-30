@@ -60,6 +60,10 @@ public:
     return ptr_;
   }
 
+  T* ptr() {
+    return ptr_;
+  }
+
   bool set_p() {
     return set_;
   }
