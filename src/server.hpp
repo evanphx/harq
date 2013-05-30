@@ -18,12 +18,19 @@
 #include "option.hpp"
 
 class Connection;
+class Message;
 
 typedef std::list<Connection*> Connections;
 
 namespace wire {
   class Message;
 }
+
+enum DataStatus {
+  eMissing,
+  eValid,
+  eInvalid
+};
 
 class Server {
   std::string db_path_;
@@ -38,10 +45,15 @@ class Server {
   leveldb::DB* db_;
   ev::dynamic_loop loop_;
   ev::io connection_watcher_;
+  ev::sig sigint_watcher_;
+  ev::sig sigterm_watcher_;
+  ev::check cleanup_watcher_;
 
   Connections connections_;
   Connections replicas_;
   Connections taps_;
+
+  Connections closing_connections_;
 
   uint64_t next_id_;
 
@@ -60,6 +72,7 @@ public:
 
   void remove_connection(Connection* con) {
     connections_.remove(con);
+    closing_connections_.push_back(con);
   }
 
   void add_replica(Connection* con) {
@@ -81,6 +94,10 @@ public:
     return id;
   }
 
+  std::string dname(std::string queue) {
+    return std::string("-") + queue;
+  }
+
   bool read_queues();
 
   bool make_queue(std::string name, Queue::Kind k);
@@ -93,14 +110,28 @@ public:
   void start();
   void on_connection(ev::io& w, int revents);
 
-  void reserve(std::string dest, bool implicit);
-  bool deliver(wire::Message& msg);
+  void on_signal(ev::sig& w, int revents);
+  void cleanup(ev::check& w, int revents);
+
+  void reserve(std::string dest);
+  bool deliver(Message& msg);
 
   void subscribe(Connection* con, std::string dest, bool durable=false);
   void flush(Connection* con, std::string dest);
 
   void stat(Connection* con, std::string name);
   void connect_replica(std::string host, int port);
+
+  DataStatus read_queue(std::string name, wire::Queue& qi);
+  DataStatus read_message(std::string key, Message& msg);
+
+  bool update_queue(std::string name, wire::Queue& qi,
+                          std::string key, const Message& msg);
+  bool update_queue(std::string name, wire::Queue& qi);
+
+  bool remove_message(std::string name, wire::Queue& qi, std::string key);
+
+  void write_replicas(const wire::Message& msg);
 };
 
 

@@ -82,10 +82,11 @@ int main(int argc, char** argv) {
     }
   }
 
-  signal(SIGTERM, sig_term);
-  signal(SIGINT,  sig_term);
+  // signal(SIGTERM, sig_term);
+  // signal(SIGINT,  sig_term);
   signal(SIGPIPE, SIG_IGN);
 
+  /*
   Config cfg("qadmus.cfg");
   cfg.open();
   if(!cfg.read()) {
@@ -93,6 +94,7 @@ int main(int argc, char** argv) {
   }
 
   cfg.show();
+  */
 
   Server server(data_dir, host, port);
   if(!server.read_queues()) return 1;

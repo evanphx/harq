@@ -63,6 +63,10 @@ public:
   bool set_p() {
     return set_;
   }
+
+  operator bool() {
+    return set_p();
+  }
 };
 
 #endif

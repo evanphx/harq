@@ -13,6 +13,7 @@
 #include "server.hpp"
 #include "connection.hpp"
 #include "action.hpp"
+#include "message.hpp"
 
 #include "wire.pb.h"
 #include "debugs.hpp"
@@ -78,7 +79,9 @@ void Connection::start_replica() {
   msg.set_destination("+replica");
   msg.set_payload(act.SerializeAsString());
 
-  write(msg);
+  if(!write(msg)) {
+    debugs << "Master disconnected while starting as replica\n";
+  }
 }
 
 void Connection::clear_ack(uint64_t id) {
@@ -115,7 +118,7 @@ void Connection::handle_action(const wire::Action& act) {
     FLOW("ACT eDurableSubscribe");
     subscriptions_.push_back(act.payload());
     server_.subscribe(this, act.payload(), true);
-    server_.reserve(act.payload(), false);
+    server_.reserve(act.payload());
     // fallthrough to flush also
   case eFlush:
     FLOW("ACT eFlush");
@@ -182,7 +185,9 @@ void Connection::send_error(std::string name, std::string error) {
   msg.set_destination("+");
   msg.set_payload(act.SerializeAsString());
 
-  write(msg);
+  if(!write(msg)) {
+    debugs << "Connection closed while writing error\n";
+  }
 }
 
 void Connection::handle_replica(const wire::ReplicaAction& act) {
@@ -194,7 +199,7 @@ void Connection::handle_replica(const wire::ReplicaAction& act) {
     }
     break;
   case wire::ReplicaAction::eReserve:
-    server_.reserve(act.payload(), false);
+    server_.reserve(act.payload());
     break;
   default:
     std::cerr << "Received unknown replica action: " << act.type() << "\n";
@@ -202,15 +207,15 @@ void Connection::handle_replica(const wire::ReplicaAction& act) {
   }
 }
 
-void Connection::handle_message(const wire::Message& msg) {
-  std::string dest = msg.destination();
+void Connection::handle_message(const Message& msg) {
+  std::string dest = msg->destination();
 
   if(dest == std::string("+")) {
     wire::Action act;
 
     FLOW("ACTION");
 
-    if(act.ParseFromString(msg.payload())) {
+    if(act.ParseFromString(msg->payload())) {
       handle_action(act);
     } else {
       std::cerr << "Unable to parse message send to '+'\n";
@@ -220,13 +225,13 @@ void Connection::handle_message(const wire::Message& msg) {
 
     FLOW("REPLICA ACTION");
 
-    if(act.ParseFromString(msg.payload())) {
+    if(act.ParseFromString(msg->payload())) {
       handle_replica(act);
     } else {
       std::cerr << "Unable to parse message send to '+replica'\n";
     }
   } else {
-    wire::Message out = msg;
+    Message out = msg;
     if(!server_.deliver(out)) {
       send_error(dest, "No such queue");
     } else if(confirm_) {
@@ -235,69 +240,74 @@ void Connection::handle_message(const wire::Message& msg) {
       // on their own.
       wire::Action oa;
       oa.set_type(eConfirm);
-      oa.set_id(msg.confirm_id());
+      oa.set_id(msg->confirm_id());
 
       wire::Message om;
 
       om.set_destination("+");
 
       std::string data;
-      if(!oa.SerializeToString(&data)) {
+      if(oa.SerializeToString(&data)) {
+        om.set_payload(data);
+
+        if(write(om)) {
+          debugs << "Sent confirmation of message id "
+                 << msg->confirm_id() << "\n";
+        } else {
+          debugs << "Connection closed while writing confirmation\n";
+        }
+      } else {
         std::cerr << "Error creating confirmation message: "
                   << oa.InitializationErrorString() << "\n";
-        return;
       }
-
-      om.set_payload(data);
-
-      write(om);
-      debugs << "Sent confirmation of message id "
-             << msg.confirm_id() << "\n";
     }
   }
 }
 
-void Connection::write(const wire::Message& msg) {
+bool Connection::write(const Message& msg) {
+  return write(msg.wire());
+}
+
+bool Connection::write(const wire::Message& msg) {
   switch(sock_.write(msg)) {
   case eOk:
-    return;
+    return true;
   case eFailure:
-    std::cerr << "Error writing to socket\n";
-    closing_ = true;
-    return;
+    debugs << "Error writing to socket\n";
+    signal_cleanup();
+    return false;
   case eWouldBlock:
     writer_started_ = true;
     write_w_.start(sock_.fd, EV_WRITE);
     debugs << "Starting writable watcher\n";
-    return;
+    return true;
   }
 }
 
-DeliverStatus Connection::deliver(const wire::Message& msg, Queue& from) {
+DeliverStatus Connection::deliver(Message& msg, Queue& from) {
   if(closing_) return eIgnored;
 
   if(ack_) {
-    wire::Message out;
-    uint64_t id = server_.assign_id(out);
+    uint64_t id = server_.assign_id(msg.wire());
 
     std::pair<AckMap::iterator, bool> ret;
 
-    ret = to_ack_.insert(AckMap::value_type(id, AckRecord(out, from)));
+    ret = to_ack_.insert(AckMap::value_type(id, AckRecord(msg, from)));
 
     from.recorded_ack(ret.first->second);
 
-    write(out);
+    if(!write(msg)) return eIgnored;
+
     return eWaitForAck;
   }
 
-  write(msg);
+  if(!write(msg)) return eIgnored;
   return eConsumed;
 }
 
 bool Connection::do_read(int revents) {
   if(EV_ERROR & revents) {
     std::cerr << "Error event detected, closing connection\n";
-    closing_ = true;
     return false;
   }
 
@@ -305,8 +315,7 @@ bool Connection::do_read(int revents) {
 
   if(recved < 0) {
     if(errno == EAGAIN || errno == EWOULDBLOCK) return false;
-    std::cerr << "Error reading from socket: " << strerror(errno) << "\n";
-    closing_ = true;
+    debugs << "Error reading from socket: " << strerror(errno) << "\n";
     return false;
   }
 
@@ -341,9 +350,9 @@ bool Connection::do_read(int revents) {
 
     FLOW("READ MSG");
 
-    wire::Message msg;
+    Message msg;
 
-    bool ok = msg.ParseFromArray(buffer_.read_pos(), need_);
+    bool ok = msg.wire().ParseFromArray(buffer_.read_pos(), need_);
 
     buffer_.advance_read(need_);
 
@@ -351,7 +360,6 @@ bool Connection::do_read(int revents) {
       handle_message(msg);
     } else {
       std::cerr << "Unable to parse request\n";
-      closing_ = true;
       return false;
     }
 
@@ -361,32 +369,40 @@ bool Connection::do_read(int revents) {
   return true;
 }
 
-void Connection::on_readable(ev::io& w, int revents)
-{
-  if(!do_read(revents)) {
-    closing_ = true;
+void Connection::on_readable(ev::io& w, int revents) {
+  if(!do_read(revents)) signal_cleanup();
+}
 
-    for(AckMap::iterator i = to_ack_.begin();
-        i != to_ack_.end();
-        ++i) {
-      FLOW("Persisting un-ack'd message");
-      server_.reserve(i->second.msg.destination(), true);
-      server_.deliver(i->second.msg);
+void Connection::unsubscribe() {
+  for(std::list<std::string>::iterator i = subscriptions_.begin();
+      i != subscriptions_.end();
+      ++i) {
+    optref<Queue> ref = server_.queue(*i);
+    if(ref.set_p()) {
+      ref->unsubscribe(this);
     }
-
-    for(std::list<std::string>::iterator i = subscriptions_.begin();
-        i != subscriptions_.end();
-        ++i) {
-      optref<Queue> ref = server_.queue(*i);
-      if(ref.set_p()) {
-        ref->unsubscribe(this);
-      }
-    }
-
-    server_.remove_connection(this);
-    delete this;
-    return;
   }
+}
+
+void Connection::cleanup() {
+  for(AckMap::iterator i = to_ack_.begin();
+      i != to_ack_.end();
+      ++i) {
+    FLOW("Persisting un-ack'd message");
+    i->second.queue.deliver(i->second.msg);
+  }
+}
+
+void Connection::signal_cleanup() {
+  if(closing_) return;
+
+  closing_ = true;
+
+  // Unsubscribe now, which is early, so that during this cycle we don't
+  // consider closing connections.
+
+  unsubscribe();
+  server_.remove_connection(this);
 }
 
 void Connection::on_writable(ev::io& w, int revents) {
@@ -400,7 +416,7 @@ void Connection::on_writable(ev::io& w, int revents) {
     return;
   case eFailure:
     std::cerr << "Error writing to socket in writable event\n";
-    closing_ = true;
+    signal_cleanup();
     writer_started_ = false;
     write_w_.stop();
     return;

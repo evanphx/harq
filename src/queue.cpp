@@ -3,6 +3,7 @@
 #include "flags.hpp"
 #include "server.hpp"
 #include "debugs.hpp"
+#include "message.hpp"
 
 #include "wire.pb.h"
 #include "leveldb/db.h"
@@ -14,19 +15,21 @@
 #define DURABLE_BROKEN() std::cerr << "Durable storage broken!\n";
 #define UNREACHABLE(msg) std::cerr << "Unreachable branch hit: " << msg << "\n";
 
-void Queue::queue(const wire::Message& msg) {
-  wire::Message* mp = new wire::Message(msg);
-  transient_.push_back(mp);
+void Queue::write_transient(const Message& msg) {
+  transient_.push_back(msg);
 }
 
 unsigned Queue::durable_messages() {
-  std::string val;
-  leveldb::Status s = server_.db()->Get(leveldb::ReadOptions(), name_, &val);
-
-  if(!s.ok()) return 0;
-
   wire::Queue qi;
-  if(!qi.ParseFromString(val)) return 0;
+
+  switch(server_.read_queue(name_, qi)) {
+  case eValid:
+    // Ok!
+    break;
+  case eMissing:
+  case eInvalid:
+    return 0;
+  }
 
   return qi.size();
 }
@@ -54,12 +57,12 @@ bool Queue::change_kind(Queue::Kind k) {
 bool Queue::flush_to_durable() {
   // pre(kind_ == eTransient);
 
-  server_.reserve(name_, false);
+  server_.reserve(name_);
 
-  for(Messages::const_iterator i = transient_.begin();
+  for(Messages::iterator i = transient_.begin();
       i != transient_.end();
       ++i) {
-    if(!write_durable(ref(*i), 0, 0)) {
+    if(!write_durable(*i)) {
       std::cerr << "Critical error flushing transient messages to durable\n";
       // Leave the rest of the messages in transient and bail hard to
       // try to at least not loose any in memory messages. We leave the
@@ -75,12 +78,6 @@ bool Queue::flush_to_durable() {
   // Ok, all messages flushed to durable, let's go ahead and cleanup the
   // transient ones.
 
-  for(Messages::const_iterator i = transient_.begin();
-      i != transient_.end();
-      ++i) {
-    delete *i;
-  }
-
   transient_.clear();
 
   kind_ = eDurable;
@@ -90,6 +87,7 @@ bool Queue::flush_to_durable() {
 
 std::string Queue::durable_key(int i) {
   std::stringstream ss;
+  ss << "-";
   ss << name_;
   ss << ":";
   ss << i;
@@ -99,24 +97,29 @@ std::string Queue::durable_key(int i) {
 
 void Queue::flush(Connection* con, leveldb::DB* db) {
   for(Messages::iterator j = transient_.begin();
-      j != transient_.end();
-      ++j) {
-    con->write(ref(*j));
-    delete *j;
-  }
-
-  transient_.clear();
-
-  std::string val;
-  leveldb::Status s = db->Get(leveldb::ReadOptions(), name_, &val);
-
-  if(!s.ok()) {
-    debugs << "No message to flush from " << name_ << "\n";
-    return;
+      j != transient_.end();)
+  {
+    if(con->write(*j)) {
+      j = transient_.erase(j);
+    } else {
+      debugs << "Error while flushing transient messages.\n";
+      return;
+    }
   }
 
   wire::Queue qi;
-  qi.ParseFromString(val);
+
+  switch(server_.read_queue(name_, qi)) {
+  case eValid:
+    // Ok!
+    break;
+  case eMissing:
+    debugs << "No message to flush from " << name_ << "\n";
+    return;
+  case eInvalid:
+    std::cerr << "Corrupt queue info for '" << name_ << "' detected!\n";
+    return;
+  }
 
   int size = qi.size();
 
@@ -130,66 +133,77 @@ void Queue::flush(Connection* con, leveldb::DB* db) {
     for(int j = range.start(); j < fin; j++) {
       std::string key = durable_key(j);
 
-      s = db->Get(leveldb::ReadOptions(), key, &val);
-      if(s.ok()) {
-        wire::Message msg;
+      Message msg(key, j);
 
-        if(msg.ParseFromString(val)) {
-          con->deliver(msg, ref(this));
-          debugs << "Flushed message " << i << "\n";
-        } else {
-          std::cerr << "Encountered corrupt message on disk\n";
-          // TODO: what should I do here? Delete it? Keep it around and
-          // make the data fairy fixes it? HMMM....
-        }
-      } else {
+      switch(server_.read_message(key, msg)) {
+      case eMissing:
         std::cerr << "Unable to get " << key << ". Corrupt QueueInfo?\n";
         // TODO: Keep going since we assuming haven't lost anything
         // and we'll fix the Queue later.
+        break;
+      case eInvalid:
+        std::cerr << "Encountered corrupt message on disk\n";
+        // TODO: what should I do here? Delete it? Keep it around and
+        // make the data fairy fixes it? HMMM....
+        break;
+      case eValid:
+        if(con->deliver(msg, ref(this)) == eIgnored) {
+          // Ok, the connection is closing while we're
+          // flushing. Because of the nature of the event
+          // processing, there is no way we could have processed
+          // an ack while flushing. Thusly, all those messages
+          // would be preserved, so we can just bail on the flush
+          // entirely and be safe.
+          //
+          // But if the connection isn't using acks, we should erase
+          // the messages we've already handled.
+          for(int ii = 0; ii < i; i++) {
+            const wire::MessageRange& r = qi.ranges(ii);
+
+            for(int jj = r.start(); jj < j; jj++) {
+              erase_durable(jj);
+            }
+          }
+          return;
+        } else {
+          debugs << "Flushed message " << j << "\n";
+        }
+        break;
       }
     }
   }
 
-  // Don't reuse qi because it might be corrupt in same way, so just
-  // make a fresh one.
-  wire::Queue new_qi;
-  new_qi.set_size(0);
-  s = db->Put(leveldb::WriteOptions(), name_, new_qi.SerializeAsString());
+  // If the connection uses acks, then when the ack is received is
+  // when we update the queue info.
+  //
+  if(!con->use_acks()) {
+    // Don't reuse qi because it might be corrupt in same way, so just
+    // make a fresh one.
+    wire::Queue new_qi;
+    new_qi.set_size(0);
 
-  if(!s.ok()) {
-    std::cerr << "Unable to reset " << name_ << "\n";
-    // TODO: durable seems to be busted! What should we do?!?
+    if(!server_.update_queue(name_, new_qi)) {
+      std::cerr << "Unable to reset " << name_ << "\n";
+      // TODO: durable seems to be busted! What should we do?!?
+    }
   }
 
   return;
 }
 
-bool Queue::write_durable(const wire::Message& msg, std::string* out_str,
-                          uint64_t* out_idx)
-{
-  std::string val;
-  leveldb::Status s = server_.db()->Get(leveldb::ReadOptions(), name_, &val);
-
+bool Queue::write_durable(Message& msg) {
   wire::Queue qi;
 
-  if(s.IsNotFound()) {
-    qi.set_size(0);
-  } else if(!s.ok()) {
-    DURABLE_BROKEN();
-    return false;
-  }
-
-  if(!qi.ParseFromString(val)) {
-    // Corrupt QueueInfo. Ug.
-    //
-    // Fail out so that we don't trash any messages on disk that can
-    // be recovered.
-    //
-    // TODO perhaps this should be a paranoid option, whether or not
-    // to reset the info or fail spectacularly.
-    //
+  switch(server_.read_queue(name_, qi)) {
+  case eValid:
+    // Ok!
+    break;
+  case eInvalid:
     std::cerr << "Corrupt queue info detected, unable to write durable\n";
     return false;
+  case eMissing:
+    qi.set_size(0);
+    break;
   }
 
   // Add the message to the end of the last range always.
@@ -214,45 +228,29 @@ bool Queue::write_durable(const wire::Message& msg, std::string* out_str,
 
   qi.set_size(qi.size() + 1);
 
-  leveldb::WriteBatch batch;
-  batch.Put(key,   msg.SerializeAsString());
-  batch.Put(name_, qi.SerializeAsString());
-
-  s = server_.db()->Write(leveldb::WriteOptions(), &batch);
-
-  if(!s.ok()) {
-    std::cerr << "Unable to write message to DB: " << s.ToString() << "\n";
-    // TODO: durable is busted! What to do?!
-    return false;
-  } else {
-    if(out_str) *out_str = key;
-    if(out_idx) *out_idx = idx;
+  if(server_.update_queue(name_, qi, key, msg)) {
+    msg.make_durable(key, idx);
     debugs << "Updated index of " << name_ << "\n";
     return true;
+  } else {
+    std::cerr << "Unable to write message to DB\n";
+    // TODO: durable is busted! What to do?!
+    return false;
   }
 }
 
-bool Queue::erase_durable(wire::Message& msg, std::string& str, int idx) {
-  std::string val;
-  leveldb::Status s = server_.db()->Get(leveldb::ReadOptions(), name_, &val);
-
+bool Queue::erase_durable(uint64_t idx) {
   wire::Queue qi;
 
-  if(!s.ok()) {
-    DURABLE_BROKEN();
-    return false;
-  }
-
-  if(!qi.ParseFromString(val)) {
-    // Corrupt QueueInfo. Ug.
-    //
-    // Fail out so that we don't trash any messages on disk that can
-    // be recovered.
-    //
-    // TODO perhaps this should be a paranoid option, whether or not
-    // to reset the info or fail spectacularly.
-    //
+  switch(server_.read_queue(name_, qi)) {
+  case eValid:
+    // Ok!
+    break;
+  case eInvalid:
     std::cerr << "Corrupt queue info detected, unable to write durable\n";
+    return false;
+  case eMissing:
+    std::cerr << "Missing queue info detected, unable to write durable\n";
     return false;
   }
 
@@ -331,14 +329,8 @@ write:
 
   qi.set_size(qi.size() - 1);
 
-  leveldb::WriteBatch batch;
-  batch.Delete(key);
-  batch.Put(name_,  qi.SerializeAsString());
-
-  s = server_.db()->Write(leveldb::WriteOptions(), &batch);
-
-  if(!s.ok()) {
-    std::cerr << "Unable to write message to DB: " << s.ToString() << "\n";
+  if(!server_.remove_message(name_, qi, key)) {
+    std::cerr << "Unable to write message to DB\n";
     // TODO: durable is busted! What to do?!
     return false;
   } else {
@@ -347,47 +339,69 @@ write:
   }
 }
 
-bool Queue::deliver(const wire::Message& msg) {
+bool Queue::deliver(Message& msg) {
   // With broadcast, we don't support acks because wtf would that
   // even mean? So we handle it specially and invoke
   // Connection::write to just write the message directly to the
   // client.
   //
   if(kind_ == eBroadcast) {
-    for(Connections::iterator i = subscribers_.begin();
-        i != subscribers_.end();
+    // Make a copy because subscribers_ might be changed if
+    // there is an error with write.
+
+    Connections cons = subscribers_;
+    for(Connections::iterator i = cons.begin();
+        i != cons.end();
         ++i) {
       Connection* con = *i;
-      con->write(msg);
+      if(!con->write(msg)) {
+        debugs << "Write error while broadcasting message\n";
+      }
     }
 
     return true;
   }
 
-  // If no one is subscribed, then queue it directly.
-  if(subscribers_.empty()) {
-    if(kind_ == eTransient) {
-      queue(msg);
-    } else {
-      write_durable(msg,0,0);
+  // So that we can loop if Connection::deliver fails.
+  for(;;) {
+
+    // If no one is subscribed, then queue it directly.
+    if(subscribers_.empty()) {
+      if(kind_ == eTransient) {
+        write_transient(msg);
+      } else {
+        if(msg.durable_p()) {
+          debugs << "Not re-writing already written durable message from ack\n";
+        } else {
+          write_durable(msg);
+        }
+      }
+
+      break;
     }
 
-    return true;
+    // Here is where we load balance over subscribers_.
+    Connection* con = subscribers_.front();
+    subscribers_.pop_front();
+    subscribers_.push_back(con);
+
+    // If the connection requires ack'ing and the queue is in
+    // durable mode, then we need to record the info about where
+    // the message is in durable storage so we can delete it
+    // later. This is done via callbacks from deliver as it
+    // figures out how the connection needs the message to be
+    // managed.
+    //
+    // Additionally, we may discover while trying to deliver the
+    // message that the connection is ignoring us because it's dead,
+    // so we loop again.
+    //
+    // NOTE this depends on the invariant that when a connection detects
+    // that it's dying it removes it's subscriptions as soon as it detects
+    // the error. Otherwise, this can turn into an infinite loop.
+
+    if(con->deliver(msg, ref(this)) != eIgnored) break;
   }
-
-  // Here is where we load balance over subscribers_.
-  Connection* con = subscribers_.front();
-  subscribers_.pop_front();
-  subscribers_.push_back(con);
-
-  // If the connection requires ack'ing and the queue is in
-  // durable mode, then we need to record the info about where
-  // the message is in durable storage so we can delete it
-  // later. This is done via callbacks from deliver as it
-  // figures out how the connection needs the message to be
-  // managed.
-
-  con->deliver(msg, ref(this));
 
   return true;
 }
@@ -398,14 +412,18 @@ void Queue::recorded_ack(AckRecord& rec) {
     UNREACHABLE("Recorded ack on broadcast queue");
     break;
   case eTransient:
-    queue(rec.msg);
+    write_transient(rec.msg);
     break;
   case eDurable:
-    if(!write_durable(rec.msg, &rec.durable_key, &rec.durable_idx)) {
-      std::cerr << "Error saving messsage to durable!\n";
-      // In this case, we really don't want to loose messages.
-      // So we queue the message in memory at least.
-      queue(rec.msg);
+    if(rec.msg.durable_p()) {
+      debugs << "Detected ack on already durable message, not re-writing\n";
+    } else {
+      if(!write_durable(rec.msg)) {
+        std::cerr << "Error saving messsage to durable!\n";
+        // In this case, we really don't want to loose messages.
+        // So we queue the message in memory at least.
+        write_transient(rec.msg);
+      }
     }
     break;
   }
@@ -420,8 +438,12 @@ void Queue::acked(AckRecord& rec) {
     // Nothing!
     break;
   case eDurable:
-    if(!erase_durable(rec.msg, rec.durable_key, rec.durable_idx)) {
-      std::cerr << "Error deleting messsage from durable!\n";
+    if(rec.msg.durable_p()) {
+      if(!erase_durable(rec.msg.index())) {
+        std::cerr << "Error deleting messsage from durable!\n";
+      }
+    } else {
+      std::cerr << "Attempted to erase a non-durable message in a durable queue\n";
     }
     break;
   }

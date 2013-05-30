@@ -17,9 +17,9 @@
 
 class Server;
 class Queue;
+class Message;
 
 namespace wire {
-  class Message;
   class Action;
   class ReplicaAction;
 }
@@ -65,25 +65,36 @@ public:
     return buffer_;
   }
 
+  bool use_acks() {
+    return ack_;
+  }
+
   void on_readable(ev::io& w, int revents);
   void on_writable(ev::io& w, int revents);
 
   void start();
   void start_replica();
-  bool do_read(int revents);
 
-  void handle_message(const wire::Message& msg);
-  void handle_action(const wire::Action& act);
-  void handle_replica(const wire::ReplicaAction& act);
+  DeliverStatus WARN_UNUSED deliver(Message& msg, Queue& from);
 
-  DeliverStatus deliver(const wire::Message& msg, Queue& from);
-
-  void write(const wire::Message& msg);
+  bool WARN_UNUSED write(const Message& msg);
+  bool WARN_UNUSED write(const wire::Message& msg);
 
   void clear_ack(uint64_t id);
 
   void make_queue(std::string name, Queue::Kind k);
   void send_error(std::string name, std::string error);
+
+  void unsubscribe();
+  void cleanup();
+
+private:
+  void signal_cleanup();
+  bool do_read(int revents);
+
+  void handle_message(const Message& msg);
+  void handle_action(const wire::Action& act);
+  void handle_replica(const wire::ReplicaAction& act);
 };
 
 #endif

@@ -49,6 +49,8 @@
 #define EVBACKEND EVBACKEND_KQUEUE
 #endif
 
+#define HARQ_CONFIG "!harq.config"
+
 Server::Server(std::string db_path, std::string hostaddr, int port)
     : db_path_(db_path)
     , hostaddr_(hostaddr)
@@ -56,6 +58,9 @@ Server::Server(std::string db_path, std::string hostaddr, int port)
     , fd_(-1)
     , loop_(EVBACKEND)
     , connection_watcher_(loop_)
+    , sigint_watcher_(loop_)
+    , sigterm_watcher_(loop_)
+    , cleanup_watcher_(loop_)
     , next_id_(0)
 {
   options_.create_if_missing = true;
@@ -65,6 +70,15 @@ Server::Server(std::string db_path, std::string hostaddr, int port)
     puts(s.ToString().c_str());
     exit(1);
   }
+
+  sigint_watcher_.set<Server, &Server::on_signal>(this);
+  sigint_watcher_.start(SIGINT);
+
+  sigterm_watcher_.set<Server, &Server::on_signal>(this);
+  sigterm_watcher_.start(SIGTERM);
+
+  cleanup_watcher_.set<Server, &Server::cleanup>(this);
+  cleanup_watcher_.start();
 }
 
 Server::~Server() {
@@ -72,9 +86,86 @@ Server::~Server() {
   close(fd_);
 }
 
+void Server::cleanup(ev::check& w, int revents) {
+  // Now all the closing connections are detached from queues
+  // and this in the only reference left to them, so we can have
+  // them flush their un-ack'd messages safely and then delete them.
+
+  for(Connections::iterator i = closing_connections_.begin();
+      i != closing_connections_.end();
+      ++i) {
+    (*i)->cleanup();
+    delete *i;
+  }
+
+  closing_connections_.clear();
+}
+
+
+DataStatus Server::read_queue(std::string name, wire::Queue& qi) {
+  std::string val;
+  leveldb::Status s = db_->Get(leveldb::ReadOptions(), dname(name), &val);
+
+  if(s.IsNotFound()) return eMissing;
+
+  if(s.ok()) {
+    if(qi.ParseFromString(val)) {
+      return eValid;
+    }
+  }
+
+  return eInvalid;
+}
+
+DataStatus Server::read_message(std::string key, Message& msg) {
+  std::string val;
+  leveldb::Status s = db_->Get(leveldb::ReadOptions(), key, &val);
+
+  if(s.IsNotFound()) return eMissing;
+
+  if(s.ok()) {
+    if(msg.wire().ParseFromString(val)) {
+      return eValid;
+    }
+  }
+
+  return eInvalid;
+}
+
+bool Server::update_queue(std::string name, wire::Queue& qi,
+                          std::string key, const Message& msg)
+{
+  leveldb::WriteBatch batch;
+  batch.Put(key, msg.serialize());
+  batch.Put(dname(name), qi.SerializeAsString());
+
+  leveldb::Status s = db_->Write(leveldb::WriteOptions(), &batch);
+
+  return s.ok();
+}
+
+bool Server::update_queue(std::string name, wire::Queue& qi) {
+  leveldb::WriteBatch batch;
+  batch.Put(dname(name), qi.SerializeAsString());
+
+  leveldb::Status s = db_->Write(leveldb::WriteOptions(), &batch);
+
+  return s.ok();
+}
+
+bool Server::remove_message(std::string name, wire::Queue& qi, std::string key) {
+  leveldb::WriteBatch batch;
+  batch.Delete(key);
+  batch.Put(dname(name), qi.SerializeAsString());
+
+  leveldb::Status s = db_->Write(leveldb::WriteOptions(), &batch);
+
+  return s.ok();
+}
+
 bool Server::read_queues() {
   std::string val;
-  leveldb::Status s = db_->Get(leveldb::ReadOptions(), "!harq.config", &val);
+  leveldb::Status s = db_->Get(leveldb::ReadOptions(), HARQ_CONFIG, &val);
   if(s.IsNotFound()) return true;
   if(!s.ok()) {
     std::cerr << "Corrupt harq.config detected!\n";
@@ -121,7 +212,7 @@ bool Server::read_queues() {
 
 bool Server::add_declaration(std::string name, Queue::Kind k) {
   std::string val;
-  leveldb::Status s = db_->Get(leveldb::ReadOptions(), "!harq.config", &val);
+  leveldb::Status s = db_->Get(leveldb::ReadOptions(), HARQ_CONFIG, &val);
 
   wire::QueueConfiguration cfg;
 
@@ -167,7 +258,7 @@ bool Server::add_declaration(std::string name, Queue::Kind k) {
     decl->set_type(wk);
   }
 
-  s = db_->Put(leveldb::WriteOptions(), "!harq.config", cfg.SerializeAsString());
+  s = db_->Put(leveldb::WriteOptions(), HARQ_CONFIG, cfg.SerializeAsString());
   if(!s.ok()) {
     std::cerr << "Unable to write harq.config!\n";
     return false;
@@ -190,7 +281,7 @@ bool Server::make_queue(std::string name, Queue::Kind k) {
   if(i == queues_.end()) {
     Queue* q = new Queue(ref(this), name, k);
     queues_[name] = q;
-    if(k == Queue::eDurable) reserve(name, false);
+    if(k == Queue::eDurable) reserve(name);
     ok = true;
   } else {
     ok = i->second->change_kind(k);
@@ -258,6 +349,11 @@ void Server::start() {
   loop_.run(0);
 }
 
+void Server::on_signal(ev::sig& w, int revents) {
+  std::cerr << "Exitting...\n";
+  loop_.break_loop();
+}
+
 void Server::on_connection(ev::io& w, int revents) {
   if(EV_ERROR & revents) {
     puts("on_connection() got error event, closing server.");
@@ -285,7 +381,7 @@ void Server::on_connection(ev::io& w, int revents) {
   connection->start();
 }
 
-void Server::reserve(std::string dest, bool implicit) {
+void Server::reserve(std::string dest) {
   if(replicas_.size() > 0) {
     wire::ReplicaAction act;
     act.set_type(wire::ReplicaAction::eReserve);
@@ -295,15 +391,11 @@ void Server::reserve(std::string dest, bool implicit) {
     msg.set_destination("+replica");
     msg.set_payload(act.SerializeAsString());
 
-    for(Connections::const_iterator i = replicas_.begin();
-        i != replicas_.end();
-        ++i) {
-      (*i)->write(msg);
-    }
+    write_replicas(msg);
   }
 
   std::string val;
-  leveldb::Status s = db_->Get(read_options_, dest, &val);
+  leveldb::Status s = db_->Get(read_options_, dname(dest), &val);
 
   if(s.ok()) {
     debugs << "Already reserved " << dest << "\n";
@@ -313,38 +405,52 @@ void Server::reserve(std::string dest, bool implicit) {
   wire::Queue q;
   q.set_size(0);
 
-  s = db_->Put(write_options_, dest, q.SerializeAsString());
+  s = db_->Put(write_options_, dname(dest), q.SerializeAsString());
   debugs << "Reserved " << dest << "\n";
   if(!s.ok()) {
     std::cerr << "Unable to reserve " << dest << "\n";
   }
 }
 
-bool Server::deliver(wire::Message& msg) {
-  optref<Queue> q = queue(msg.destination());
-  if(!q.set_p()) return false;
+bool Server::deliver(Message& msg) {
+  std::string dest = msg->destination();
+
+  optref<Queue> q = queue(dest);
+  if(!q) return false;
 
   // Send message to taps first.
-  for(Connections::const_iterator i = taps_.begin();
-      i != taps_.end();
-      ++i) {
-    (*i)->write(msg);
+  for(Connections::iterator i = taps_.begin();
+      i != taps_.end();)
+  {
+    if((*i)->write(msg.wire())) {
+      ++i;
+    } else {
+      debugs << "Tap write error (disconnect) while writing to\n";
+      i = taps_.erase(i);
+    }
   }
-
-  std::string dest = msg.destination();
 
   debugs << "delivering to " << dest << " for "
          << connections_.size() << " connections\n";
 
   q->deliver(msg);
 
-  for(Connections::const_iterator i = replicas_.begin();
-      i != replicas_.end();
-      ++i) {
-    (*i)->write(msg);
-  }
+  write_replicas(msg.wire());
 
   return true;
+}
+
+void Server::write_replicas(const wire::Message& msg) {
+  for(Connections::iterator i = replicas_.begin();
+      i != replicas_.end();) 
+  {
+    if((*i)->write(msg)) {
+      ++i;
+    } else {
+      std::cerr << "Replica error (disconnected) while writing to\n";
+      i = replicas_.erase(i);
+    }
+  }
 }
 
 void Server::subscribe(Connection* con, std::string dest, bool durable) {
@@ -358,15 +464,14 @@ void Server::flush(Connection* con, std::string dest) {
 }
 
 void Server::stat(Connection* con, std::string dest) {
-  optref<Queue> q = queue(dest);
-
   wire::Stat stat;
   stat.set_name(dest);
 
-  if(q.set_p()) {
-    stat.set_transient_size(q.set_p() ? q->queued_messages() : -1);
+  if(optref<Queue> q = queue(dest)) {
+    stat.set_exists(true);
+    stat.set_transient_size(q->queued_messages());
 
-    if(q.set_p() && q->durable_p()) {
+    if(q->durable_p()) {
       stat.set_durable_size(q->durable_messages());
     }
   } else {
@@ -378,7 +483,9 @@ void Server::stat(Connection* con, std::string dest) {
   msg.set_type(eStat);
   msg.set_payload(stat.SerializeAsString());
 
-  con->write(msg);
+  if(!con->write(msg)) {
+    debugs << "Connection closed returning stat information\n";
+  }
 }
 
 void Server::connect_replica(std::string host, int c_port) {

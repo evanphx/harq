@@ -70,6 +70,8 @@ int fsck(int argc, char** argv) {
 
   std::cout << cfg.queues_size() << " queues detected.\n";
 
+  bool some_bad = false;
+
   for(int i = 0; i < cfg.queues_size(); i++) {
     const wire::QueueDeclaration& decl = cfg.queues(i);
 
@@ -124,6 +126,7 @@ int fsck(int argc, char** argv) {
             } else {
               wire::Message msg;
               if(!msg.ParseFromString(val)) {
+                some_bad = true;
                 std::cerr << "Corrupt message detected '" << tmp.str() << "'\n";
               } else {
                 valid++;
@@ -137,5 +140,5 @@ int fsck(int argc, char** argv) {
     }
   }
 
-  return 0;
+  return some_bad ? 1 : 0;
 }

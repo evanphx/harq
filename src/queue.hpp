@@ -4,6 +4,8 @@
 #include <list>
 #include <string>
 
+#include "message.hpp"
+
 namespace wire {
   class Message;
   class Queue;
@@ -22,7 +24,7 @@ public:
   enum Kind { eBroadcast, eTransient, eDurable };
 
 private:
-  typedef std::list<wire::Message*> Messages;
+  typedef std::list<Message> Messages;
   typedef std::list<Connection*> Connections;
 
   Server& server_;
@@ -63,17 +65,17 @@ public:
 
   bool change_kind(Kind k);
 
-  void queue(const wire::Message& msg);
   void flush(Connection* con, leveldb::DB* db);
-  bool deliver(const wire::Message& msg);
-
-  bool write_durable(const wire::Message& msg, std::string* key, uint64_t* idx);
-  bool erase_durable(wire::Message& msg, std::string& str, int idx);
+  bool deliver(Message& msg);
 
   void recorded_ack(AckRecord& rec);
   void acked(AckRecord& rec);
 
 private:
+  void write_transient(const Message& msg);
+  bool write_durable(Message& msg);
+  bool erase_durable(uint64_t index);
+
   bool flush_to_durable();
   std::string durable_key(int j);
 };
