@@ -1,5 +1,7 @@
 require 'beefcake'
 
+require 'harq/errors'
+
 class Harq
   module Wire
     StatType = 1
@@ -29,12 +31,32 @@ class Harq
       end
     end
 
+    class QueueError
+      include Beefcake::Message
+
+      required :queue, :string, 1
+      required :error, :string, 2
+    end
+
     class Action
       include Beefcake::Message
 
       required :type, :int32, 1
       optional :payload, :string, 2
       optional :id, :uint64, 3
+
+      def self.handle(msg)
+        act = Action.decode msg.payload
+
+        case act.type
+        when 13
+          error = QueueError.decode act.payload
+
+          raise Harq::QueueError.new(error.queue, error.error)
+        else
+          raise Harq::ProtocolError, "Unknown action received: #{act.type}"
+        end
+      end
     end
 
     class Stat

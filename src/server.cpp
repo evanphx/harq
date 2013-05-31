@@ -1,10 +1,3 @@
-/*-*- c++ -*-
- *
- * rl_server.cpp
- * author : KDr2
- *
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -292,6 +285,15 @@ bool Server::make_queue(std::string name, Queue::Kind k) {
   return ok;
 }
 
+void Server::destroy_queue(Queue* q) {
+  Queues::iterator i = queues_.find(q->name());
+  if(i != queues_.end()) {
+    queues_.erase(i);
+  }
+
+  delete q;
+}
+
 void Server::start() {    
   if((fd_ = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
     perror("socket()");
@@ -430,9 +432,6 @@ bool Server::deliver(Message& msg) {
     }
   }
 
-  debugs << "delivering to " << dest << " for "
-         << connections_.size() << " connections\n";
-
   q->deliver(msg);
 
   write_replicas(msg.wire());
@@ -465,9 +464,11 @@ void Server::write_replicas(const wire::Message& msg) {
   }
 }
 
-void Server::subscribe(Connection* con, std::string dest, bool durable) {
+optref<Queue> Server::subscribe(Connection* con, std::string dest) {
   optref<Queue> q = queue(dest);
   if(q.set_p()) q->subscribe(con);
+
+  return optref<Queue>();
 }
 
 void Server::flush(Connection* con, std::string dest) {

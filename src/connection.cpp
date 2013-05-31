@@ -103,9 +103,10 @@ void Connection::handle_action(const wire::Action& act) {
   switch(type) {
   case eSubscribe:
     FLOW("ACT eSubscribe");
-    subscriptions_.push_back(act.payload());
-    server_.subscribe(this, act.payload());
-    server_.flush(this, act.payload());
+    if(optref<Queue> q = server_.subscribe(this, act.payload())) {
+      subscriptions_.push_back(q.ptr());
+      server_.flush(this, act.payload());
+    }
     break;
   case eTap:
     FLOW("ACT eTap");
@@ -116,9 +117,10 @@ void Connection::handle_action(const wire::Action& act) {
     break;
   case eDurableSubscribe:
     FLOW("ACT eDurableSubscribe");
-    subscriptions_.push_back(act.payload());
-    server_.subscribe(this, act.payload(), true);
-    server_.reserve(act.payload());
+    if(optref<Queue> q = server_.subscribe(this, act.payload())) {
+      subscriptions_.push_back(q.ptr());
+      server_.reserve(act.payload());
+    }
     // fallthrough to flush also
   case eFlush:
     FLOW("ACT eFlush");
@@ -160,6 +162,17 @@ void Connection::handle_action(const wire::Action& act) {
     FLOW("ACT eMakeDurableQueue");
     make_queue(act.payload(), Queue::eDurable);
     break;
+  case eMakeEphemeralQueue:
+    FLOW("ACT eMakeEphemeralQueue");
+    if(make_queue(act.payload(), Queue::eTransient)) {
+      if(optref<Queue> q = server_.queue(act.payload())) {
+        ephemeral_queues_.push_back(q.ptr());
+      } else {
+        std::cerr << "Failed to create transient queue for ephemeral\n";
+      }
+    }
+
+    break;
   case eBond:
     FLOW("ACT eBond");
     {
@@ -179,10 +192,13 @@ void Connection::handle_action(const wire::Action& act) {
   }
 }
 
-void Connection::make_queue(std::string name, Queue::Kind k) {
+bool Connection::make_queue(std::string name, Queue::Kind k) {
   if(!server_.make_queue(name, k)) {
     send_error(name, "Unable to change queue type");
+    return false;
   }
+
+  return true;
 }
 
 void Connection::send_error(std::string name, std::string error) {
@@ -387,17 +403,22 @@ void Connection::on_readable(ev::io& w, int revents) {
 }
 
 void Connection::unsubscribe() {
-  for(std::list<std::string>::iterator i = subscriptions_.begin();
+  for(Queue::List::iterator i = subscriptions_.begin();
       i != subscriptions_.end();
       ++i) {
-    optref<Queue> ref = server_.queue(*i);
-    if(ref.set_p()) {
-      ref->unsubscribe(this);
-    }
+    (*i)->unsubscribe(this);
   }
 }
 
 void Connection::cleanup() {
+  for(Queue::List::iterator i = ephemeral_queues_.begin();
+      i != ephemeral_queues_.end();
+      ++i) {
+    server_.destroy_queue(*i);
+  }
+
+  ephemeral_queues_.clear();
+
   for(AckMap::iterator i = to_ack_.begin();
       i != to_ack_.end();
       ++i) {

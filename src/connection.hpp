@@ -12,6 +12,7 @@
 #include "harq.hpp"
 #include "buffer.hpp"
 #include "socket.hpp"
+#include "queue.hpp"
 
 #include "ack_record.hpp"
 
@@ -31,7 +32,7 @@ public:
   enum State { eReadSize, eReadMessage };
 
 private:
-  std::list<std::string> subscriptions_;
+  Queue::List subscriptions_;
   bool tap_;
   bool ack_;
   bool confirm_;
@@ -54,6 +55,8 @@ private:
   int need_;
 
   bool writer_started_;
+
+  Queue::List ephemeral_queues_;
 
 public:
   /*** methods ***/
@@ -82,8 +85,12 @@ public:
 
   void clear_ack(uint64_t id);
 
-  void make_queue(std::string name, Queue::Kind k);
+  bool make_queue(std::string name, Queue::Kind k);
   void send_error(std::string name, std::string error);
+
+  void queue_destroyed(Queue* q) {
+    subscriptions_.remove(q);
+  }
 
   void unsubscribe();
   void cleanup();

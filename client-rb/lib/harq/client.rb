@@ -59,6 +59,10 @@ class Harq
       send_action :type => 12, :payload => dest
     end
 
+    def make_ephemeral(dest)
+      send_action :type => 15, :payload => dest
+    end
+
     def request_bond(queue, dest)
       br = Wire::BondRequest.new :queue => queue, :destination => dest
 
@@ -90,8 +94,16 @@ class Harq
     end
 
     def read_message
-      sz = @sock.read(4).unpack("N").first
-      Wire::Message.decode @sock.read(sz)
+      while true
+        sz = @sock.read(4).unpack("N").first
+        msg = Wire::Message.decode @sock.read(sz)
+
+        if msg.destination == "+"
+          Wire::Action.handle msg
+        else
+          return msg
+        end
+      end
     end
 
     def ready?

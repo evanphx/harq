@@ -15,7 +15,8 @@ enum ActionType {
   eMakeTransientQueue = 11,
   eMakeDurableQueue = 12,
   eQueueError = 13,
-  eBond = 14
+  eBond = 14,
+  eMakeEphemeralQueue = 15
 };
 
 #endif

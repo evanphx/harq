@@ -22,11 +22,11 @@ struct AckRecord;
 class Queue {
 public:
   enum Kind { eBroadcast, eTransient, eDurable };
+  typedef std::list<Queue*> List;
 
 private:
   typedef std::list<Message> Messages;
   typedef std::list<Connection*> Connections;
-  typedef std::list<Queue*> List;
 
   Server& server_;
   const std::string name_;
@@ -45,8 +45,14 @@ public:
     , kind_(k)
   {}
 
+  ~Queue();
+
   Server& server() {
     return server_;
+  }
+
+  std::string name() {
+    return name_;
   }
 
   unsigned queued_messages() {

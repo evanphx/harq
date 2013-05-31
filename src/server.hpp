@@ -103,6 +103,8 @@ public:
   bool make_queue(std::string name, Queue::Kind k);
   bool add_declaration(std::string name, Queue::Kind k);
 
+  void destroy_queue(Queue* q);
+
   optref<Queue> queue(std::string name);
 
   Server(std::string db_path, std::string hostaddr, int port);
@@ -116,7 +118,7 @@ public:
   void reserve(std::string dest);
   bool deliver(Message& msg);
 
-  void subscribe(Connection* con, std::string dest, bool durable=false);
+  optref<Queue> subscribe(Connection* con, std::string dest);
   void flush(Connection* con, std::string dest);
 
   void stat(Connection* con, std::string name);

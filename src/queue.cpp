@@ -15,6 +15,21 @@
 #define DURABLE_BROKEN() std::cerr << "Durable storage broken!\n";
 #define UNREACHABLE(msg) std::cerr << "Unreachable branch hit: " << msg << "\n";
 
+Queue::~Queue() {
+  for(List::iterator i = bonded_to_.begin();
+      i != bonded_to_.end();
+      ++i) {
+    (*i)->broadcast_into_.remove(this);
+  }
+
+  bonded_to_.clear();
+  for(Connections::iterator i = subscribers_.begin();
+      i != subscribers_.end();
+      ++i) {
+    (*i)->queue_destroyed(this);
+  }
+}
+
 void Queue::write_transient(const Message& msg) {
   transient_.push_back(msg);
 }
