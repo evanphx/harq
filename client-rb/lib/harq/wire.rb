@@ -38,6 +38,15 @@ class Harq
       required :error, :string, 2
     end
 
+    class ConnectionConfigure
+      include Beefcake::Message
+
+      optional :tap, :bool, 1
+      optional :ack, :bool, 2
+      optional :confirm, :bool, 3
+      optional :inflight, :uint32, 4
+    end
+
     class Action
       include Beefcake::Message
 

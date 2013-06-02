@@ -58,6 +58,8 @@ private:
 
   Queue::List ephemeral_queues_;
 
+  int inflight_max_;
+
 public:
   /*** methods ***/
 
@@ -70,6 +72,10 @@ public:
 
   bool use_acks() {
     return ack_;
+  }
+
+  bool active_p() {
+    return !closing_;
   }
 
   void on_readable(ev::io& w, int revents);

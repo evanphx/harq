@@ -21,7 +21,7 @@ struct AckRecord;
 
 class Queue {
 public:
-  enum Kind { eBroadcast, eTransient, eDurable };
+  enum Kind { eBroadcast, eTransient, eDurable, eEphemeral };
   typedef std::list<Queue*> List;
 
 private:
@@ -46,6 +46,10 @@ public:
   {}
 
   ~Queue();
+
+  bool mem_only_p() {
+    return kind_ == eTransient || kind_ == eEphemeral;
+  }
 
   Server& server() {
     return server_;
@@ -80,7 +84,8 @@ public:
 
   bool change_kind(Kind k);
 
-  void flush(Connection* con, leveldb::DB* db);
+  int flush(Connection* con);
+  int flush_at_most(Connection* con, int count);
   void deliver(Message& msg);
 
   void recorded_ack(AckRecord& rec);

@@ -37,6 +37,7 @@ void protobuf_ShutdownFile_wire_2eproto();
 class Message;
 class Action;
 class BondRequest;
+class ConnectionConfigure;
 class MessageRange;
 class Queue;
 class Stat;
@@ -434,6 +435,118 @@ class BondRequest : public ::google::protobuf::Message {
 
   void InitAsDefaultInstance();
   static BondRequest* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class ConnectionConfigure : public ::google::protobuf::Message {
+ public:
+  ConnectionConfigure();
+  virtual ~ConnectionConfigure();
+
+  ConnectionConfigure(const ConnectionConfigure& from);
+
+  inline ConnectionConfigure& operator=(const ConnectionConfigure& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const ConnectionConfigure& default_instance();
+
+  void Swap(ConnectionConfigure* other);
+
+  // implements Message ----------------------------------------------
+
+  ConnectionConfigure* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const ConnectionConfigure& from);
+  void MergeFrom(const ConnectionConfigure& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional bool tap = 1;
+  inline bool has_tap() const;
+  inline void clear_tap();
+  static const int kTapFieldNumber = 1;
+  inline bool tap() const;
+  inline void set_tap(bool value);
+
+  // optional bool ack = 2;
+  inline bool has_ack() const;
+  inline void clear_ack();
+  static const int kAckFieldNumber = 2;
+  inline bool ack() const;
+  inline void set_ack(bool value);
+
+  // optional bool confirm = 3;
+  inline bool has_confirm() const;
+  inline void clear_confirm();
+  static const int kConfirmFieldNumber = 3;
+  inline bool confirm() const;
+  inline void set_confirm(bool value);
+
+  // optional uint32 inflight = 4;
+  inline bool has_inflight() const;
+  inline void clear_inflight();
+  static const int kInflightFieldNumber = 4;
+  inline ::google::protobuf::uint32 inflight() const;
+  inline void set_inflight(::google::protobuf::uint32 value);
+
+  // @@protoc_insertion_point(class_scope:wire.ConnectionConfigure)
+ private:
+  inline void set_has_tap();
+  inline void clear_has_tap();
+  inline void set_has_ack();
+  inline void clear_has_ack();
+  inline void set_has_confirm();
+  inline void clear_has_confirm();
+  inline void set_has_inflight();
+  inline void clear_has_inflight();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  bool tap_;
+  bool ack_;
+  bool confirm_;
+  ::google::protobuf::uint32 inflight_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
+
+  friend void  protobuf_AddDesc_wire_2eproto();
+  friend void protobuf_AssignDesc_wire_2eproto();
+  friend void protobuf_ShutdownFile_wire_2eproto();
+
+  void InitAsDefaultInstance();
+  static ConnectionConfigure* default_instance_;
 };
 // -------------------------------------------------------------------
 
@@ -1664,6 +1777,98 @@ inline void BondRequest::set_allocated_destination(::std::string* destination) {
     clear_has_destination();
     destination_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   }
+}
+
+// -------------------------------------------------------------------
+
+// ConnectionConfigure
+
+// optional bool tap = 1;
+inline bool ConnectionConfigure::has_tap() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void ConnectionConfigure::set_has_tap() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void ConnectionConfigure::clear_has_tap() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void ConnectionConfigure::clear_tap() {
+  tap_ = false;
+  clear_has_tap();
+}
+inline bool ConnectionConfigure::tap() const {
+  return tap_;
+}
+inline void ConnectionConfigure::set_tap(bool value) {
+  set_has_tap();
+  tap_ = value;
+}
+
+// optional bool ack = 2;
+inline bool ConnectionConfigure::has_ack() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void ConnectionConfigure::set_has_ack() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void ConnectionConfigure::clear_has_ack() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void ConnectionConfigure::clear_ack() {
+  ack_ = false;
+  clear_has_ack();
+}
+inline bool ConnectionConfigure::ack() const {
+  return ack_;
+}
+inline void ConnectionConfigure::set_ack(bool value) {
+  set_has_ack();
+  ack_ = value;
+}
+
+// optional bool confirm = 3;
+inline bool ConnectionConfigure::has_confirm() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void ConnectionConfigure::set_has_confirm() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void ConnectionConfigure::clear_has_confirm() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void ConnectionConfigure::clear_confirm() {
+  confirm_ = false;
+  clear_has_confirm();
+}
+inline bool ConnectionConfigure::confirm() const {
+  return confirm_;
+}
+inline void ConnectionConfigure::set_confirm(bool value) {
+  set_has_confirm();
+  confirm_ = value;
+}
+
+// optional uint32 inflight = 4;
+inline bool ConnectionConfigure::has_inflight() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+inline void ConnectionConfigure::set_has_inflight() {
+  _has_bits_[0] |= 0x00000008u;
+}
+inline void ConnectionConfigure::clear_has_inflight() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline void ConnectionConfigure::clear_inflight() {
+  inflight_ = 0u;
+  clear_has_inflight();
+}
+inline ::google::protobuf::uint32 ConnectionConfigure::inflight() const {
+  return inflight_;
+}
+inline void ConnectionConfigure::set_inflight(::google::protobuf::uint32 value) {
+  set_has_inflight();
+  inflight_ = value;
 }
 
 // -------------------------------------------------------------------

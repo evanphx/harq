@@ -11,32 +11,39 @@ class Harq
       @sock.close
     end
 
-    def subscribe!(dest)
-      send_action :type => 1, :payload => dest
+    def configure(hsh)
+      cfg = Wire::ConnectionConfigure.new hsh
+      str = ""
+      cfg.encode(str)
+      send_action :type => 2, :payload => str
     end
 
     def tap!
-      send_action :type => 2
+      configure :tap => true
     end
 
-    def durable_subscribe!(dest)
-      send_action :type => 3, :payload => dest
+    def request_confirm!
+      configure :confirm => true
+    end
+
+    def request_ack!
+      configure :ack => true
+    end
+
+    def inflight_max=(val)
+      configure :inflight => val.to_i
+    end
+
+    def subscribe!(dest)
+      send_action :type => 1, :payload => dest
     end
 
     def flush(dest)
       send_action :type => 4, :payload => dest
     end
 
-    def request_ack!
-      send_action :type => 5
-    end
-
     def ack(id)
       send_action :type => 6, :id => id
-    end
-
-    def request_confirm!
-      send_action :type => 7
     end
 
     def confirm(id)
@@ -106,8 +113,8 @@ class Harq
       end
     end
 
-    def ready?
-      !IO.select([@sock]).empty?
+    def ready?(timeout=0)
+      !!IO.select([@sock], nil, nil, timeout)
     end
 
     def send_action(fields)

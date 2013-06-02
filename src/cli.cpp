@@ -74,8 +74,12 @@ end:
 
     if(getenv("CONFIRM")) {
 
+      wire::ConnectionConfigure cfg;
+      cfg.set_confirm(true);
+
       wire::Action act;
-      act.set_type(eRequestConfirm);
+      act.set_type(eConfigure);
+      act.set_payload(cfg.SerializeAsString());
 
       msg.set_destination("+");
       msg.set_payload(act.SerializeAsString());
@@ -120,9 +124,12 @@ end:
     bool use_acks = (getenv("REQ_ACK") != 0);
 
     if(use_acks) {
-      wire::Action act;
+      wire::ConnectionConfigure cfg;
+      cfg.set_ack(true);
 
-      act.set_type(eRequestAck);
+      wire::Action act;
+      act.set_type(eConfigure);
+      act.set_payload(cfg.SerializeAsString());
 
       wire::Message msg;
 
@@ -135,16 +142,16 @@ end:
     wire::Action act;
 
     if(std::string(argv[1]) == "-t") {
-      act.set_type(eTap);
+      wire::ConnectionConfigure cfg;
+      cfg.set_tap(true);
+
+      act.set_type(eConfigure);
+      act.set_payload(cfg.SerializeAsString());
+
       std::cout << "Tapped all messages\n";
     } else {
-      if(*argv[1] == '+') {
-        act.set_type(eDurableSubscribe);
-        act.set_payload(argv[1] + 1);
-      } else {
-        act.set_type(eSubscribe);
-        act.set_payload(argv[1]);
-      }
+      act.set_type(eSubscribe);
+      act.set_payload(argv[1]);
 
       std::cout << "Listening on " << argv[1] << "\n";
     }

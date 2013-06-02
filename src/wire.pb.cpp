@@ -29,6 +29,9 @@ const ::google::protobuf::internal::GeneratedMessageReflection*
 const ::google::protobuf::Descriptor* BondRequest_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   BondRequest_reflection_ = NULL;
+const ::google::protobuf::Descriptor* ConnectionConfigure_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  ConnectionConfigure_reflection_ = NULL;
 const ::google::protobuf::Descriptor* MessageRange_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   MessageRange_reflection_ = NULL;
@@ -115,7 +118,25 @@ void protobuf_AssignDesc_wire_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(BondRequest));
-  MessageRange_descriptor_ = file->message_type(3);
+  ConnectionConfigure_descriptor_ = file->message_type(3);
+  static const int ConnectionConfigure_offsets_[4] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ConnectionConfigure, tap_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ConnectionConfigure, ack_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ConnectionConfigure, confirm_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ConnectionConfigure, inflight_),
+  };
+  ConnectionConfigure_reflection_ =
+    new ::google::protobuf::internal::GeneratedMessageReflection(
+      ConnectionConfigure_descriptor_,
+      ConnectionConfigure::default_instance_,
+      ConnectionConfigure_offsets_,
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ConnectionConfigure, _has_bits_[0]),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ConnectionConfigure, _unknown_fields_),
+      -1,
+      ::google::protobuf::DescriptorPool::generated_pool(),
+      ::google::protobuf::MessageFactory::generated_factory(),
+      sizeof(ConnectionConfigure));
+  MessageRange_descriptor_ = file->message_type(4);
   static const int MessageRange_offsets_[2] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MessageRange, start_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MessageRange, count_),
@@ -131,7 +152,7 @@ void protobuf_AssignDesc_wire_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(MessageRange));
-  Queue_descriptor_ = file->message_type(4);
+  Queue_descriptor_ = file->message_type(5);
   static const int Queue_offsets_[2] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Queue, size_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Queue, ranges_),
@@ -147,7 +168,7 @@ void protobuf_AssignDesc_wire_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(Queue));
-  Stat_descriptor_ = file->message_type(5);
+  Stat_descriptor_ = file->message_type(6);
   static const int Stat_offsets_[4] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Stat, name_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Stat, exists_),
@@ -165,7 +186,7 @@ void protobuf_AssignDesc_wire_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(Stat));
-  ReplicaAction_descriptor_ = file->message_type(6);
+  ReplicaAction_descriptor_ = file->message_type(7);
   static const int ReplicaAction_offsets_[2] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ReplicaAction, type_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ReplicaAction, payload_),
@@ -182,7 +203,7 @@ void protobuf_AssignDesc_wire_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(ReplicaAction));
   ReplicaAction_Type_descriptor_ = ReplicaAction_descriptor_->enum_type(0);
-  QueueError_descriptor_ = file->message_type(7);
+  QueueError_descriptor_ = file->message_type(8);
   static const int QueueError_offsets_[2] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(QueueError, queue_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(QueueError, error_),
@@ -198,7 +219,7 @@ void protobuf_AssignDesc_wire_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(QueueError));
-  QueueDeclaration_descriptor_ = file->message_type(8);
+  QueueDeclaration_descriptor_ = file->message_type(9);
   static const int QueueDeclaration_offsets_[2] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(QueueDeclaration, name_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(QueueDeclaration, type_),
@@ -215,7 +236,7 @@ void protobuf_AssignDesc_wire_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(QueueDeclaration));
   QueueDeclaration_Type_descriptor_ = QueueDeclaration_descriptor_->enum_type(0);
-  QueueConfiguration_descriptor_ = file->message_type(9);
+  QueueConfiguration_descriptor_ = file->message_type(10);
   static const int QueueConfiguration_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(QueueConfiguration, queues_),
   };
@@ -249,6 +270,8 @@ void protobuf_RegisterTypes(const ::std::string&) {
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
     BondRequest_descriptor_, &BondRequest::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+    ConnectionConfigure_descriptor_, &ConnectionConfigure::default_instance());
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
     MessageRange_descriptor_, &MessageRange::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
     Queue_descriptor_, &Queue::default_instance());
@@ -273,6 +296,8 @@ void protobuf_ShutdownFile_wire_2eproto() {
   delete Action_reflection_;
   delete BondRequest::default_instance_;
   delete BondRequest_reflection_;
+  delete ConnectionConfigure::default_instance_;
+  delete ConnectionConfigure_reflection_;
   delete MessageRange::default_instance_;
   delete MessageRange_reflection_;
   delete Queue::default_instance_;
@@ -301,26 +326,29 @@ void protobuf_AddDesc_wire_2eproto() {
     "\r\n\005flags\030\004 \001(\r\022\022\n\nconfirm_id\030\005 \001(\004\022\014\n\004ty"
     "pe\030\006 \001(\r\"3\n\006Action\022\014\n\004type\030\001 \002(\005\022\017\n\007payl"
     "oad\030\002 \001(\t\022\n\n\002id\030\003 \001(\004\"1\n\013BondRequest\022\r\n\005"
-    "queue\030\001 \002(\t\022\023\n\013destination\030\002 \002(\t\",\n\014Mess"
-    "ageRange\022\r\n\005start\030\001 \002(\005\022\r\n\005count\030\002 \002(\005\"9"
-    "\n\005Queue\022\014\n\004size\030\001 \002(\005\022\"\n\006ranges\030\002 \003(\0132\022."
-    "wire.MessageRange\"R\n\004Stat\022\014\n\004name\030\001 \002(\t\022"
-    "\016\n\006exists\030\002 \002(\010\022\026\n\016transient_size\030\003 \001(\r\022"
-    "\024\n\014durable_size\030\004 \001(\r\"j\n\rReplicaAction\022&"
-    "\n\004type\030\001 \002(\0162\030.wire.ReplicaAction.Type\022\017"
-    "\n\007payload\030\002 \001(\014\" \n\004Type\022\n\n\006eStart\020\000\022\014\n\010e"
-    "Reserve\020\001\"*\n\nQueueError\022\r\n\005queue\030\001 \002(\t\022\r"
-    "\n\005error\030\002 \001(\t\"\201\001\n\020QueueDeclaration\022\014\n\004na"
-    "me\030\001 \002(\t\022)\n\004type\030\002 \002(\0162\033.wire.QueueDecla"
-    "ration.Type\"4\n\004Type\022\016\n\neBroadcast\020\000\022\016\n\ne"
-    "Transient\020\001\022\014\n\010eDurable\020\002\"<\n\022QueueConfig"
-    "uration\022&\n\006queues\030\001 \003(\0132\026.wire.QueueDecl"
-    "aration", 767);
+    "queue\030\001 \002(\t\022\023\n\013destination\030\002 \002(\t\"R\n\023Conn"
+    "ectionConfigure\022\013\n\003tap\030\001 \001(\010\022\013\n\003ack\030\002 \001("
+    "\010\022\017\n\007confirm\030\003 \001(\010\022\020\n\010inflight\030\004 \001(\r\",\n\014"
+    "MessageRange\022\r\n\005start\030\001 \002(\005\022\r\n\005count\030\002 \002"
+    "(\005\"9\n\005Queue\022\014\n\004size\030\001 \002(\005\022\"\n\006ranges\030\002 \003("
+    "\0132\022.wire.MessageRange\"R\n\004Stat\022\014\n\004name\030\001 "
+    "\002(\t\022\016\n\006exists\030\002 \002(\010\022\026\n\016transient_size\030\003 "
+    "\001(\r\022\024\n\014durable_size\030\004 \001(\r\"j\n\rReplicaActi"
+    "on\022&\n\004type\030\001 \002(\0162\030.wire.ReplicaAction.Ty"
+    "pe\022\017\n\007payload\030\002 \001(\014\" \n\004Type\022\n\n\006eStart\020\000\022"
+    "\014\n\010eReserve\020\001\"*\n\nQueueError\022\r\n\005queue\030\001 \002"
+    "(\t\022\r\n\005error\030\002 \001(\t\"\201\001\n\020QueueDeclaration\022\014"
+    "\n\004name\030\001 \002(\t\022)\n\004type\030\002 \002(\0162\033.wire.QueueD"
+    "eclaration.Type\"4\n\004Type\022\016\n\neBroadcast\020\000\022"
+    "\016\n\neTransient\020\001\022\014\n\010eDurable\020\002\"<\n\022QueueCo"
+    "nfiguration\022&\n\006queues\030\001 \003(\0132\026.wire.Queue"
+    "Declaration", 851);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "wire.proto", &protobuf_RegisterTypes);
   Message::default_instance_ = new Message();
   Action::default_instance_ = new Action();
   BondRequest::default_instance_ = new BondRequest();
+  ConnectionConfigure::default_instance_ = new ConnectionConfigure();
   MessageRange::default_instance_ = new MessageRange();
   Queue::default_instance_ = new Queue();
   Stat::default_instance_ = new Stat();
@@ -331,6 +359,7 @@ void protobuf_AddDesc_wire_2eproto() {
   Message::default_instance_->InitAsDefaultInstance();
   Action::default_instance_->InitAsDefaultInstance();
   BondRequest::default_instance_->InitAsDefaultInstance();
+  ConnectionConfigure::default_instance_->InitAsDefaultInstance();
   MessageRange::default_instance_->InitAsDefaultInstance();
   Queue::default_instance_->InitAsDefaultInstance();
   Stat::default_instance_->InitAsDefaultInstance();
@@ -1376,6 +1405,328 @@ void BondRequest::Swap(BondRequest* other) {
   ::google::protobuf::Metadata metadata;
   metadata.descriptor = BondRequest_descriptor_;
   metadata.reflection = BondRequest_reflection_;
+  return metadata;
+}
+
+
+// ===================================================================
+
+#ifndef _MSC_VER
+const int ConnectionConfigure::kTapFieldNumber;
+const int ConnectionConfigure::kAckFieldNumber;
+const int ConnectionConfigure::kConfirmFieldNumber;
+const int ConnectionConfigure::kInflightFieldNumber;
+#endif  // !_MSC_VER
+
+ConnectionConfigure::ConnectionConfigure()
+  : ::google::protobuf::Message() {
+  SharedCtor();
+}
+
+void ConnectionConfigure::InitAsDefaultInstance() {
+}
+
+ConnectionConfigure::ConnectionConfigure(const ConnectionConfigure& from)
+  : ::google::protobuf::Message() {
+  SharedCtor();
+  MergeFrom(from);
+}
+
+void ConnectionConfigure::SharedCtor() {
+  _cached_size_ = 0;
+  tap_ = false;
+  ack_ = false;
+  confirm_ = false;
+  inflight_ = 0u;
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+ConnectionConfigure::~ConnectionConfigure() {
+  SharedDtor();
+}
+
+void ConnectionConfigure::SharedDtor() {
+  if (this != default_instance_) {
+  }
+}
+
+void ConnectionConfigure::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* ConnectionConfigure::descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return ConnectionConfigure_descriptor_;
+}
+
+const ConnectionConfigure& ConnectionConfigure::default_instance() {
+  if (default_instance_ == NULL) protobuf_AddDesc_wire_2eproto();
+  return *default_instance_;
+}
+
+ConnectionConfigure* ConnectionConfigure::default_instance_ = NULL;
+
+ConnectionConfigure* ConnectionConfigure::New() const {
+  return new ConnectionConfigure;
+}
+
+void ConnectionConfigure::Clear() {
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    tap_ = false;
+    ack_ = false;
+    confirm_ = false;
+    inflight_ = 0u;
+  }
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+  mutable_unknown_fields()->Clear();
+}
+
+bool ConnectionConfigure::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+  ::google::protobuf::uint32 tag;
+  while ((tag = input->ReadTag()) != 0) {
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // optional bool tap = 1;
+      case 1: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
+                 input, &tap_)));
+          set_has_tap();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(16)) goto parse_ack;
+        break;
+      }
+
+      // optional bool ack = 2;
+      case 2: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+         parse_ack:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
+                 input, &ack_)));
+          set_has_ack();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(24)) goto parse_confirm;
+        break;
+      }
+
+      // optional bool confirm = 3;
+      case 3: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+         parse_confirm:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
+                 input, &confirm_)));
+          set_has_confirm();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(32)) goto parse_inflight;
+        break;
+      }
+
+      // optional uint32 inflight = 4;
+      case 4: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+         parse_inflight:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
+                 input, &inflight_)));
+          set_has_inflight();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectAtEnd()) return true;
+        break;
+      }
+
+      default: {
+      handle_uninterpreted:
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          return true;
+        }
+        DO_(::google::protobuf::internal::WireFormat::SkipField(
+              input, tag, mutable_unknown_fields()));
+        break;
+      }
+    }
+  }
+  return true;
+#undef DO_
+}
+
+void ConnectionConfigure::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // optional bool tap = 1;
+  if (has_tap()) {
+    ::google::protobuf::internal::WireFormatLite::WriteBool(1, this->tap(), output);
+  }
+
+  // optional bool ack = 2;
+  if (has_ack()) {
+    ::google::protobuf::internal::WireFormatLite::WriteBool(2, this->ack(), output);
+  }
+
+  // optional bool confirm = 3;
+  if (has_confirm()) {
+    ::google::protobuf::internal::WireFormatLite::WriteBool(3, this->confirm(), output);
+  }
+
+  // optional uint32 inflight = 4;
+  if (has_inflight()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(4, this->inflight(), output);
+  }
+
+  if (!unknown_fields().empty()) {
+    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
+        unknown_fields(), output);
+  }
+}
+
+::google::protobuf::uint8* ConnectionConfigure::SerializeWithCachedSizesToArray(
+    ::google::protobuf::uint8* target) const {
+  // optional bool tap = 1;
+  if (has_tap()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(1, this->tap(), target);
+  }
+
+  // optional bool ack = 2;
+  if (has_ack()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(2, this->ack(), target);
+  }
+
+  // optional bool confirm = 3;
+  if (has_confirm()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(3, this->confirm(), target);
+  }
+
+  // optional uint32 inflight = 4;
+  if (has_inflight()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(4, this->inflight(), target);
+  }
+
+  if (!unknown_fields().empty()) {
+    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
+        unknown_fields(), target);
+  }
+  return target;
+}
+
+int ConnectionConfigure::ByteSize() const {
+  int total_size = 0;
+
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    // optional bool tap = 1;
+    if (has_tap()) {
+      total_size += 1 + 1;
+    }
+
+    // optional bool ack = 2;
+    if (has_ack()) {
+      total_size += 1 + 1;
+    }
+
+    // optional bool confirm = 3;
+    if (has_confirm()) {
+      total_size += 1 + 1;
+    }
+
+    // optional uint32 inflight = 4;
+    if (has_inflight()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::UInt32Size(
+          this->inflight());
+    }
+
+  }
+  if (!unknown_fields().empty()) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        unknown_fields());
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void ConnectionConfigure::MergeFrom(const ::google::protobuf::Message& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  const ConnectionConfigure* source =
+    ::google::protobuf::internal::dynamic_cast_if_available<const ConnectionConfigure*>(
+      &from);
+  if (source == NULL) {
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+    MergeFrom(*source);
+  }
+}
+
+void ConnectionConfigure::MergeFrom(const ConnectionConfigure& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_tap()) {
+      set_tap(from.tap());
+    }
+    if (from.has_ack()) {
+      set_ack(from.ack());
+    }
+    if (from.has_confirm()) {
+      set_confirm(from.confirm());
+    }
+    if (from.has_inflight()) {
+      set_inflight(from.inflight());
+    }
+  }
+  mutable_unknown_fields()->MergeFrom(from.unknown_fields());
+}
+
+void ConnectionConfigure::CopyFrom(const ::google::protobuf::Message& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void ConnectionConfigure::CopyFrom(const ConnectionConfigure& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool ConnectionConfigure::IsInitialized() const {
+
+  return true;
+}
+
+void ConnectionConfigure::Swap(ConnectionConfigure* other) {
+  if (other != this) {
+    std::swap(tap_, other->tap_);
+    std::swap(ack_, other->ack_);
+    std::swap(confirm_, other->confirm_);
+    std::swap(inflight_, other->inflight_);
+    std::swap(_has_bits_[0], other->_has_bits_[0]);
+    _unknown_fields_.Swap(&other->_unknown_fields_);
+    std::swap(_cached_size_, other->_cached_size_);
+  }
+}
+
+::google::protobuf::Metadata ConnectionConfigure::GetMetadata() const {
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = ConnectionConfigure_descriptor_;
+  metadata.reflection = ConnectionConfigure_reflection_;
   return metadata;
 }
 

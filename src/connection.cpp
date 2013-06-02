@@ -36,6 +36,7 @@ Connection::Connection(Server& s, int fd)
   , buffer_(1024)
   , state_(eReadSize)
   , writer_started_(false)
+  , inflight_max_(1)
 {
   read_w_.set<Connection, &Connection::on_readable>(this);
   write_w_.set<Connection, &Connection::on_writable>(this);
@@ -92,6 +93,16 @@ void Connection::clear_ack(uint64_t id) {
     i->second.queue.acked(i->second);
     to_ack_.erase(i);
     debugs << "Successfully acked " << id << "\n";
+
+    int capa = inflight_max_ - to_ack_.size();
+
+    for(Queue::List::iterator i = subscriptions_.begin();
+        i != subscriptions_.end();
+        ++i) {
+      capa -= (*i)->flush_at_most(this, capa);
+
+      if(capa == 0) break;
+    }
   } else {
     debugs << "Unable to find id " << id << " to clear\n";
   }
@@ -101,34 +112,42 @@ void Connection::handle_action(const wire::Action& act) {
   ActionType type = (ActionType)act.type();
 
   switch(type) {
+  case eConfigure:
+    FLOW("ACT eConfigure");
+    {
+      wire::ConnectionConfigure cfg;
+      if(cfg.ParseFromString(act.payload())) {
+        if(cfg.has_tap()) {
+          if(cfg.tap() && !tap_) {
+            server_.add_tap(this);
+          }
+
+          // TODO add remove_tap
+
+          tap_ = cfg.tap();
+        }
+        if(cfg.has_ack()) ack_ = cfg.ack();
+        if(cfg.has_confirm()) confirm_ = cfg.confirm();
+        if(cfg.has_inflight()) inflight_max_ = cfg.inflight();
+      } else {
+        debugs << "Unable to parse configure request\n";
+      }
+    }
+    break;
   case eSubscribe:
     FLOW("ACT eSubscribe");
     if(optref<Queue> q = server_.subscribe(this, act.payload())) {
       subscriptions_.push_back(q.ptr());
       server_.flush(this, act.payload());
+    } else {
+      send_error(act.payload(), "No such queue");
+      debugs << "Tried to subscribe to non-existing queue: "
+             << act.payload() << "\n";
     }
     break;
-  case eTap:
-    FLOW("ACT eTap");
-    if(!tap_) {
-      tap_ = true;
-      server_.add_tap(this);
-    }
-    break;
-  case eDurableSubscribe:
-    FLOW("ACT eDurableSubscribe");
-    if(optref<Queue> q = server_.subscribe(this, act.payload())) {
-      subscriptions_.push_back(q.ptr());
-      server_.reserve(act.payload());
-    }
-    // fallthrough to flush also
   case eFlush:
     FLOW("ACT eFlush");
     server_.flush(this, act.payload());
-    break;
-  case eRequestAck:
-    FLOW("ACT eRequestAck");
-    ack_ = true;
     break;
   case eAck:
     FLOW("ACT eAck");
@@ -137,10 +156,6 @@ void Connection::handle_action(const wire::Action& act) {
     } else {
       std::cerr << "Received ACK with no id\n";
     }
-    break;
-  case eRequestConfirm:
-    FLOW("ACT eRequestConfirm");
-    confirm_ = true;
     break;
   case eConfirm:
     FLOW("ACT eConfirm");
@@ -164,7 +179,7 @@ void Connection::handle_action(const wire::Action& act) {
     break;
   case eMakeEphemeralQueue:
     FLOW("ACT eMakeEphemeralQueue");
-    if(make_queue(act.payload(), Queue::eTransient)) {
+    if(make_queue(act.payload(), Queue::eEphemeral)) {
       if(optref<Queue> q = server_.queue(act.payload())) {
         ephemeral_queues_.push_back(q.ptr());
       } else {
@@ -317,6 +332,8 @@ DeliverStatus Connection::deliver(Message& msg, Queue& from) {
   if(closing_) return eIgnored;
 
   if(ack_) {
+    if(to_ack_.size() >= inflight_max_) return eIgnored;
+
     uint64_t id = server_.assign_id(msg.wire());
 
     std::pair<AckMap::iterator, bool> ret;

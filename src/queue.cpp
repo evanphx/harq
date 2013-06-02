@@ -57,14 +57,17 @@ bool Queue::change_kind(Queue::Kind k) {
   case eTransient:
     if(kind_ == eTransient) return true;
     return false;
+  case eEphemeral:
+    if(kind_ == eEphemeral) return true;
+    return false;
   case eDurable:
     switch(kind_) {
     case eBroadcast:
+    case eDurable:
+    case eEphemeral:
       return false;
     case eTransient:
       return flush_to_durable();
-    case eDurable:
-      return true;
     }
   }
 }
@@ -110,17 +113,26 @@ std::string Queue::durable_key(int i) {
   return ss.str();
 }
 
-void Queue::flush(Connection* con, leveldb::DB* db) {
+int Queue::flush_at_most(Connection* con, int count) {
+  std::cerr << "Flush at most: " << count << "\n";
+
+  int wrote = 0;
+
   for(Messages::iterator j = transient_.begin();
       j != transient_.end();)
   {
-    if(con->write(*j)) {
+    if(count == wrote) break;
+
+    if(con->deliver(*j, ref(this)) != eIgnored) {
       j = transient_.erase(j);
+      wrote++;
     } else {
-      debugs << "Error while flushing transient messages.\n";
-      return;
+      debugs << "Connection refused delivery.\n";
+      break;
     }
   }
+
+  if(kind_ != eDurable) return wrote;
 
   wire::Queue qi;
 
@@ -130,25 +142,27 @@ void Queue::flush(Connection* con, leveldb::DB* db) {
     break;
   case eMissing:
     debugs << "No message to flush from " << name_ << "\n";
-    return;
+    return wrote;
   case eInvalid:
     std::cerr << "Corrupt queue info for '" << name_ << "' detected!\n";
-    return;
+    return wrote;
   }
 
   int size = qi.size();
 
   debugs << "Messages to flush: " << size << "\n";
 
-  for(int i = 0; i < qi.ranges_size(); i++) {
-    const wire::MessageRange& range = qi.ranges(i);
+  for(int cur_range = 0; cur_range < qi.ranges_size(); cur_range++) {
+    const wire::MessageRange& range = qi.ranges(cur_range);
 
     int fin = range.start() + range.count();
 
-    for(int j = range.start(); j < fin; j++) {
-      std::string key = durable_key(j);
+    for(int cur_msg = range.start(); cur_msg < fin; cur_msg++) {
+      if(count == wrote) goto done;
 
-      Message msg(key, j);
+      std::string key = durable_key(cur_msg);
+
+      Message msg(key, cur_msg);
 
       switch(server_.read_message(key, msg)) {
       case eMissing:
@@ -163,47 +177,34 @@ void Queue::flush(Connection* con, leveldb::DB* db) {
         break;
       case eValid:
         if(con->deliver(msg, ref(this)) == eIgnored) {
-          // Ok, the connection is closing while we're
-          // flushing. Because of the nature of the event
-          // processing, there is no way we could have processed
-          // an ack while flushing. Thusly, all those messages
-          // would be preserved, so we can just bail on the flush
-          // entirely and be safe.
-          //
-          // But if the connection isn't using acks, we should erase
-          // the messages we've already handled.
-          for(int ii = 0; ii < i; i++) {
-            const wire::MessageRange& r = qi.ranges(ii);
-
-            for(int jj = r.start(); jj < j; jj++) {
-              erase_durable(jj);
-            }
-          }
-          return;
+          // The connection is rejecting our messages now, so bail.
+          goto done;
         } else {
-          debugs << "Flushed message " << j << "\n";
+          wrote++;
+          // If the connection doesn't use acks, then we need
+          // to delete the durable version now. (with acks, it's
+          // deleted when we get the ack)
+          if(!con->use_acks()) erase_durable(cur_msg);
+          debugs << "Flushed message " << cur_msg << "\n";
         }
         break;
       }
     }
   }
 
-  // If the connection uses acks, then when the ack is received is
-  // when we update the queue info.
-  //
-  if(!con->use_acks()) {
-    // Don't reuse qi because it might be corrupt in same way, so just
-    // make a fresh one.
-    wire::Queue new_qi;
-    new_qi.set_size(0);
+done:
+  return wrote;
+}
 
-    if(!server_.update_queue(name_, new_qi)) {
-      std::cerr << "Unable to reset " << name_ << "\n";
-      // TODO: durable seems to be busted! What should we do?!?
-    }
+int Queue::flush(Connection* con) {
+  int wrote = 0;
+  while(con->active_p()) {
+    int w = flush_at_most(con, 25);
+    if(w == 0) break;
+    wrote += w;
   }
 
-  return;
+  return wrote;
 }
 
 bool Queue::write_durable(Message& msg) {
@@ -370,12 +371,15 @@ void Queue::deliver(Message& msg) {
     return;
   }
 
+  Connection* initial = 0;
+
   // So that we can loop if Connection::deliver fails.
   for(;;) {
 
     // If no one is subscribed, then queue it directly.
     if(subscribers_.empty()) {
-      if(kind_ == eTransient) {
+queue_it:
+      if(mem_only_p()) {
         write_transient(msg);
       } else {
         if(msg.durable_p()) {
@@ -390,6 +394,16 @@ void Queue::deliver(Message& msg) {
 
     // Here is where we load balance over subscribers_.
     Connection* con = subscribers_.front();
+
+    // If there is no initial connection, then make it this one
+    if(!initial) {
+      initial = con;
+
+    // If we've looped back around and not found anyone, then queue it!
+    } else if(initial == con) {
+      goto queue_it;
+    }
+
     subscribers_.pop_front();
     subscribers_.push_back(con);
 
@@ -417,8 +431,8 @@ void Queue::recorded_ack(AckRecord& rec) {
   case eBroadcast:
     UNREACHABLE("Recorded ack on broadcast queue");
     break;
+  case eEphemeral:
   case eTransient:
-    write_transient(rec.msg);
     break;
   case eDurable:
     if(rec.msg.durable_p()) {
@@ -426,9 +440,6 @@ void Queue::recorded_ack(AckRecord& rec) {
     } else {
       if(!write_durable(rec.msg)) {
         std::cerr << "Error saving messsage to durable!\n";
-        // In this case, we really don't want to loose messages.
-        // So we queue the message in memory at least.
-        write_transient(rec.msg);
       }
     }
     break;
@@ -440,6 +451,7 @@ void Queue::acked(AckRecord& rec) {
   case eBroadcast:
     UNREACHABLE("Received ack on broadcast queue");
     break;
+  case eEphemeral:
   case eTransient:
     // Nothing!
     break;

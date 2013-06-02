@@ -3,58 +3,27 @@ require 'harq/client'
 require 'fileutils'
 
 class TestServer < Test::Unit::TestCase
-  EXEC = File.expand_path "../../../harq", __FILE__
-  TEST_DB = File.expand_path "../test.db", __FILE__
-  TEST_PORT = 12032
+  Q = "&rubytest"
+  P = "payload"
 
-  DEST = "test"
-  PAYLOAD = "payload1234"
-
-  SHOW_DEBUG = ENV['HARQ_DEBUG']
-
-  def stop!
-    @clients.each { |c| c.close rescue nil }
-    Process.kill "INT", @pid
-    @io.close
-  end
-
-  def start!
-    if SHOW_DEBUG
-      @io = IO.popen "#{EXEC} -p #{TEST_PORT} -d #{TEST_DB}", "w"
-    else
-      @io = IO.popen "#{EXEC} -p #{TEST_PORT} -d #{TEST_DB} > /dev/null", "w"
-    end
-
-    @pid = @io.pid
-
-    sleep 0.25
+  def setup
     @clients = []
   end
 
-  def restart!
-    start!
-    stop!
-  end
-
-  def setup
-    start!
-  end
-
   def teardown
-    stop!
-  ensure
-    FileUtils.rm_rf TEST_DB
+    @clients.each do |c|
+      c.close rescue nil
+    end
   end
 
-  def assert_clean
-    stop!
-    str = `#{EXEC} fsck #{TEST_DB} 2>&1`
-    assert_equal 0, $?.exitstatus, str
-    start!
+  def connect
+    c = Harq::Client.new
+    @clients << c
+    c
   end
 
   def assert_queue_size(b, size)
-    b.request_stat DEST
+    b.request_stat Q
 
     msg = b.read_message
     assert msg.stat?
@@ -64,62 +33,42 @@ class TestServer < Test::Unit::TestCase
     assert_equal size, s.transient_size + s.durable_size
   end
 
-  def connect
-    c = Harq::Client.new "localhost", TEST_PORT
-    @clients << c
-    c
-  end
-
   def test_queue
     a = connect
 
-    a.make_transient DEST
+    a.make_ephemeral Q
 
-    a.queue DEST, PAYLOAD
-
-    b = connect
-
-    b.subscribe! DEST
-
-    assert_equal PAYLOAD, b.read
-  end
-
-  def test_transient_queue_lost_on_restart
-    a = connect
-
-    a.make_transient DEST
-    a.queue DEST, PAYLOAD
-
-    restart!
+    a.queue Q, P
 
     b = connect
 
-    b.request_stat DEST
+    b.subscribe! Q
 
-    msg = b.read_message
-    assert msg.stat?
-
-    assert_equal 0, msg.as_stat.transient_size
+    assert_equal P, b.read
   end
 
-  def test_durable_messages_properly_resaved_on_failed_ack
+  def test_messages_held_by_inflight
     c = connect
-    c.make_durable DEST
-    c.queue DEST, "p1"
-    c.queue DEST, "p2"
+    c.make_ephemeral Q
+    c.queue Q, "p1"
+    c.queue Q, "p2"
 
     c.request_ack!
 
-    c.subscribe! DEST
+    c.subscribe! Q
 
-    c.close
+    m = c.read_message
 
-    sleep 1
-    assert_clean
+    assert_equal "p1", m.payload
 
-    c = connect
+    assert !c.ready?(1)
 
-    assert_queue_size c, 2
+    c.ack m.id
+
+    assert c.ready?(1)
+    m = c.read_message
+
+    assert_equal "p2", m.payload
   end
 
 end

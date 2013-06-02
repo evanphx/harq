@@ -231,6 +231,9 @@ bool Server::add_declaration(std::string name, Queue::Kind k) {
   case Queue::eDurable:
     wk = wire::QueueDeclaration::eDurable;
     break;
+  case Queue::eEphemeral:
+    std::cerr << "Tried to add a declaration for an ephemeral queue!\n";
+    return false;
   }
 
   bool wrote = false;
@@ -280,7 +283,7 @@ bool Server::make_queue(std::string name, Queue::Kind k) {
     ok = i->second->change_kind(k);
   }
 
-  if(ok) add_declaration(name, k);
+  if(ok && k != Queue::eEphemeral) add_declaration(name, k);
 
   return ok;
 }
@@ -466,14 +469,17 @@ void Server::write_replicas(const wire::Message& msg) {
 
 optref<Queue> Server::subscribe(Connection* con, std::string dest) {
   optref<Queue> q = queue(dest);
-  if(q.set_p()) q->subscribe(con);
+  if(q.set_p()) {
+    q->subscribe(con);
+    return q;
+  }
 
   return optref<Queue>();
 }
 
 void Server::flush(Connection* con, std::string dest) {
   optref<Queue> q = queue(dest);
-  if(q.set_p()) q->flush(con, db_);
+  if(q.set_p()) q->flush(con);
 }
 
 void Server::stat(Connection* con, std::string dest) {
