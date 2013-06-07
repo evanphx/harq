@@ -153,14 +153,14 @@ class Message : public ::google::protobuf::Message {
   inline ::std::string* release_destination();
   inline void set_allocated_destination(::std::string* destination);
 
-  // required string payload = 2;
+  // required bytes payload = 2;
   inline bool has_payload() const;
   inline void clear_payload();
   static const int kPayloadFieldNumber = 2;
   inline const ::std::string& payload() const;
   inline void set_payload(const ::std::string& value);
   inline void set_payload(const char* value);
-  inline void set_payload(const char* value, size_t size);
+  inline void set_payload(const void* value, size_t size);
   inline ::std::string* mutable_payload();
   inline ::std::string* release_payload();
   inline void set_allocated_payload(::std::string* payload);
@@ -1359,7 +1359,7 @@ inline void Message::set_allocated_destination(::std::string* destination) {
   }
 }
 
-// required string payload = 2;
+// required bytes payload = 2;
 inline bool Message::has_payload() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
@@ -1392,7 +1392,7 @@ inline void Message::set_payload(const char* value) {
   }
   payload_->assign(value);
 }
-inline void Message::set_payload(const char* value, size_t size) {
+inline void Message::set_payload(const void* value, size_t size) {
   set_has_payload();
   if (payload_ == &::google::protobuf::internal::kEmptyString) {
     payload_ = new ::std::string;
