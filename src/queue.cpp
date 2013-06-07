@@ -378,6 +378,7 @@ void Queue::deliver(Message& msg) {
 
     // If no one is subscribed, then queue it directly.
     if(subscribers_.empty()) {
+      debugs << "No subscribers, queueing message..\n";
 queue_it:
       if(mem_only_p()) {
         write_transient(msg);
@@ -422,6 +423,7 @@ queue_it:
     // that it's dying it removes it's subscriptions as soon as it detects
     // the error. Otherwise, this can turn into an infinite loop.
 
+    debugs << "Delivering message to connection...\n";
     if(con->deliver(msg, ref(this)) != eIgnored) break;
   }
 }

@@ -20,7 +20,8 @@
 
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 
-#define FLOW(str) debugs << "- " << str << "\n"
+#define FLOW(str)
+// #define FLOW(str) debugs << "- " << str << "\n"
 
 Connection::Connection(Server& s, int fd)
   : tap_(false)
@@ -137,6 +138,7 @@ void Connection::handle_action(const wire::Action& act) {
   case eSubscribe:
     FLOW("ACT eSubscribe");
     if(optref<Queue> q = server_.subscribe(this, act.payload())) {
+      debugs << "Subscribed to queue: " << act.payload() << "\n";
       subscriptions_.push_back(q.ptr());
       server_.flush(this, act.payload());
     } else {
@@ -213,10 +215,12 @@ bool Connection::make_queue(std::string name, Queue::Kind k) {
     return false;
   }
 
+  debugs << "Created queue: " << name << "\n";
   return true;
 }
 
 void Connection::send_error(std::string name, std::string error) {
+  debugs << "Sending error for queue '" << name << "': " << error << "\n";
   wire::QueueError err;
   err.set_queue(name);
   err.set_error(error);
@@ -367,27 +371,27 @@ bool Connection::do_read(int revents) {
 
   if(recved == 0) return false;
 
-  debugs << "Read " << recved << " bytes\n";
+  // debugs << "Read " << recved << " bytes\n";
 
   // Allow us to parse multiple messages in one read
   for(;;) {
     if(state_ == eReadSize) {
       FLOW("READ SIZE");
 
-      debugs << "avail=" << buffer_.read_available() << "\n";
+      // debugs << "avail=" << buffer_.read_available() << "\n";
 
       if(buffer_.read_available() < 4) return true;
 
       int size = buffer_.read_int32();
 
-      debugs << "msg size=" << size << "\n";
+      // debugs << "msg size=" << size << "\n";
 
       need_ = size;
 
       state_ = eReadMessage;
     }
 
-    debugs << "avail=" << buffer_.read_available() << "\n";
+    // debugs << "avail=" << buffer_.read_available() << "\n";
 
     if(buffer_.read_available() < need_) {
       FLOW("NEED MORE");

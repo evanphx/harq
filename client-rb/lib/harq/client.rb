@@ -3,8 +3,15 @@ require 'harq/wire'
 
 class Harq
   class Client
-    def initialize(host="localhost", port=7621)
+
+    DEFAULT_PORT = 7621
+
+    def initialize(host="localhost", port=DEFAULT_PORT)
       @sock = TCPSocket.new host, port
+    end
+
+    def to_io
+      @sock
     end
 
     def close
