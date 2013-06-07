@@ -153,14 +153,14 @@ class Message : public ::google::protobuf::Message {
   inline ::std::string* release_destination();
   inline void set_allocated_destination(::std::string* destination);
 
-  // required string payload = 2;
+  // required bytes payload = 2;
   inline bool has_payload() const;
   inline void clear_payload();
   static const int kPayloadFieldNumber = 2;
   inline const ::std::string& payload() const;
   inline void set_payload(const ::std::string& value);
   inline void set_payload(const char* value);
-  inline void set_payload(const char* value, size_t size);
+  inline void set_payload(const void* value, size_t size);
   inline ::std::string* mutable_payload();
   inline ::std::string* release_payload();
   inline void set_allocated_payload(::std::string* payload);
@@ -186,13 +186,6 @@ class Message : public ::google::protobuf::Message {
   inline ::google::protobuf::uint64 confirm_id() const;
   inline void set_confirm_id(::google::protobuf::uint64 value);
 
-  // optional uint32 type = 6;
-  inline bool has_type() const;
-  inline void clear_type();
-  static const int kTypeFieldNumber = 6;
-  inline ::google::protobuf::uint32 type() const;
-  inline void set_type(::google::protobuf::uint32 value);
-
   // @@protoc_insertion_point(class_scope:wire.Message)
  private:
   inline void set_has_destination();
@@ -205,8 +198,6 @@ class Message : public ::google::protobuf::Message {
   inline void clear_has_flags();
   inline void set_has_confirm_id();
   inline void clear_has_confirm_id();
-  inline void set_has_type();
-  inline void clear_has_type();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
@@ -215,10 +206,9 @@ class Message : public ::google::protobuf::Message {
   ::google::protobuf::uint64 id_;
   ::google::protobuf::uint64 confirm_id_;
   ::google::protobuf::uint32 flags_;
-  ::google::protobuf::uint32 type_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(6 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
 
   friend void  protobuf_AddDesc_wire_2eproto();
   friend void protobuf_AssignDesc_wire_2eproto();
@@ -1359,7 +1349,7 @@ inline void Message::set_allocated_destination(::std::string* destination) {
   }
 }
 
-// required string payload = 2;
+// required bytes payload = 2;
 inline bool Message::has_payload() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
@@ -1392,7 +1382,7 @@ inline void Message::set_payload(const char* value) {
   }
   payload_->assign(value);
 }
-inline void Message::set_payload(const char* value, size_t size) {
+inline void Message::set_payload(const void* value, size_t size) {
   set_has_payload();
   if (payload_ == &::google::protobuf::internal::kEmptyString) {
     payload_ = new ::std::string;
@@ -1493,28 +1483,6 @@ inline ::google::protobuf::uint64 Message::confirm_id() const {
 inline void Message::set_confirm_id(::google::protobuf::uint64 value) {
   set_has_confirm_id();
   confirm_id_ = value;
-}
-
-// optional uint32 type = 6;
-inline bool Message::has_type() const {
-  return (_has_bits_[0] & 0x00000020u) != 0;
-}
-inline void Message::set_has_type() {
-  _has_bits_[0] |= 0x00000020u;
-}
-inline void Message::clear_has_type() {
-  _has_bits_[0] &= ~0x00000020u;
-}
-inline void Message::clear_type() {
-  type_ = 0u;
-  clear_has_type();
-}
-inline ::google::protobuf::uint32 Message::type() const {
-  return type_;
-}
-inline void Message::set_type(::google::protobuf::uint32 value) {
-  set_has_type();
-  type_ = value;
 }
 
 // -------------------------------------------------------------------

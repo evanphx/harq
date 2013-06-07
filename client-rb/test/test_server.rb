@@ -30,7 +30,7 @@ class TestServer < Test::Unit::TestCase
 
     s = msg.as_stat
 
-    assert_equal size, s.transient_size + s.durable_size
+    assert_equal size, s.size
   end
 
   def test_queue
@@ -62,6 +62,8 @@ class TestServer < Test::Unit::TestCase
     assert_equal "p1", m.payload
 
     assert !c.ready?(1)
+
+    assert_queue_size c, 1
 
     c.ack m.id
 

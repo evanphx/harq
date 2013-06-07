@@ -4,8 +4,6 @@ require 'harq/errors'
 
 class Harq
   module Wire
-    StatType = 1
-
     class Message
       include Beefcake::Message
 
@@ -16,10 +14,9 @@ class Harq
       optional :flags, :uint32, 4
 
       optional :confirm_id, :uint64, 5
-      optional :type, :uint32, 6
 
       def stat?
-        type == StatType
+        destination == "+stat"
       end
 
       def as_stat
@@ -72,9 +69,13 @@ class Harq
       include Beefcake::Message
 
       required :name, :string, 1
-      required :name, :bool, 2
+      required :exists, :bool, 2
       optional :transient_size, :uint32, 3
       optional :durable_size, :uint32, 4
+
+      def size
+        transient_size.to_i + durable_size.to_i
+      end
     end
 
     class BondRequest

@@ -66,13 +66,12 @@ void protobuf_AssignDesc_wire_2eproto() {
       "wire.proto");
   GOOGLE_CHECK(file != NULL);
   Message_descriptor_ = file->message_type(0);
-  static const int Message_offsets_[6] = {
+  static const int Message_offsets_[5] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Message, destination_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Message, payload_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Message, id_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Message, flags_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Message, confirm_id_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Message, type_),
   };
   Message_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -321,28 +320,27 @@ void protobuf_AddDesc_wire_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-    "\n\nwire.proto\022\004wire\"l\n\007Message\022\023\n\013destina"
-    "tion\030\001 \002(\t\022\017\n\007payload\030\002 \002(\t\022\n\n\002id\030\003 \001(\004\022"
-    "\r\n\005flags\030\004 \001(\r\022\022\n\nconfirm_id\030\005 \001(\004\022\014\n\004ty"
-    "pe\030\006 \001(\r\"3\n\006Action\022\014\n\004type\030\001 \002(\005\022\017\n\007payl"
-    "oad\030\002 \001(\t\022\n\n\002id\030\003 \001(\004\"1\n\013BondRequest\022\r\n\005"
-    "queue\030\001 \002(\t\022\023\n\013destination\030\002 \002(\t\"R\n\023Conn"
-    "ectionConfigure\022\013\n\003tap\030\001 \001(\010\022\013\n\003ack\030\002 \001("
-    "\010\022\017\n\007confirm\030\003 \001(\010\022\020\n\010inflight\030\004 \001(\r\",\n\014"
-    "MessageRange\022\r\n\005start\030\001 \002(\005\022\r\n\005count\030\002 \002"
-    "(\005\"9\n\005Queue\022\014\n\004size\030\001 \002(\005\022\"\n\006ranges\030\002 \003("
-    "\0132\022.wire.MessageRange\"R\n\004Stat\022\014\n\004name\030\001 "
-    "\002(\t\022\016\n\006exists\030\002 \002(\010\022\026\n\016transient_size\030\003 "
-    "\001(\r\022\024\n\014durable_size\030\004 \001(\r\"j\n\rReplicaActi"
-    "on\022&\n\004type\030\001 \002(\0162\030.wire.ReplicaAction.Ty"
-    "pe\022\017\n\007payload\030\002 \001(\014\" \n\004Type\022\n\n\006eStart\020\000\022"
-    "\014\n\010eReserve\020\001\"*\n\nQueueError\022\r\n\005queue\030\001 \002"
-    "(\t\022\r\n\005error\030\002 \001(\t\"\201\001\n\020QueueDeclaration\022\014"
-    "\n\004name\030\001 \002(\t\022)\n\004type\030\002 \002(\0162\033.wire.QueueD"
-    "eclaration.Type\"4\n\004Type\022\016\n\neBroadcast\020\000\022"
-    "\016\n\neTransient\020\001\022\014\n\010eDurable\020\002\"<\n\022QueueCo"
-    "nfiguration\022&\n\006queues\030\001 \003(\0132\026.wire.Queue"
-    "Declaration", 851);
+    "\n\nwire.proto\022\004wire\"^\n\007Message\022\023\n\013destina"
+    "tion\030\001 \002(\t\022\017\n\007payload\030\002 \002(\014\022\n\n\002id\030\003 \001(\004\022"
+    "\r\n\005flags\030\004 \001(\r\022\022\n\nconfirm_id\030\005 \001(\004\"3\n\006Ac"
+    "tion\022\014\n\004type\030\001 \002(\005\022\017\n\007payload\030\002 \001(\t\022\n\n\002i"
+    "d\030\003 \001(\004\"1\n\013BondRequest\022\r\n\005queue\030\001 \002(\t\022\023\n"
+    "\013destination\030\002 \002(\t\"R\n\023ConnectionConfigur"
+    "e\022\013\n\003tap\030\001 \001(\010\022\013\n\003ack\030\002 \001(\010\022\017\n\007confirm\030\003"
+    " \001(\010\022\020\n\010inflight\030\004 \001(\r\",\n\014MessageRange\022\r"
+    "\n\005start\030\001 \002(\005\022\r\n\005count\030\002 \002(\005\"9\n\005Queue\022\014\n"
+    "\004size\030\001 \002(\005\022\"\n\006ranges\030\002 \003(\0132\022.wire.Messa"
+    "geRange\"R\n\004Stat\022\014\n\004name\030\001 \002(\t\022\016\n\006exists\030"
+    "\002 \002(\010\022\026\n\016transient_size\030\003 \001(\r\022\024\n\014durable"
+    "_size\030\004 \001(\r\"j\n\rReplicaAction\022&\n\004type\030\001 \002"
+    "(\0162\030.wire.ReplicaAction.Type\022\017\n\007payload\030"
+    "\002 \001(\014\" \n\004Type\022\n\n\006eStart\020\000\022\014\n\010eReserve\020\001\""
+    "*\n\nQueueError\022\r\n\005queue\030\001 \002(\t\022\r\n\005error\030\002 "
+    "\001(\t\"\201\001\n\020QueueDeclaration\022\014\n\004name\030\001 \002(\t\022)"
+    "\n\004type\030\002 \002(\0162\033.wire.QueueDeclaration.Typ"
+    "e\"4\n\004Type\022\016\n\neBroadcast\020\000\022\016\n\neTransient\020"
+    "\001\022\014\n\010eDurable\020\002\"<\n\022QueueConfiguration\022&\n"
+    "\006queues\030\001 \003(\0132\026.wire.QueueDeclaration", 837);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "wire.proto", &protobuf_RegisterTypes);
   Message::default_instance_ = new Message();
@@ -385,7 +383,6 @@ const int Message::kPayloadFieldNumber;
 const int Message::kIdFieldNumber;
 const int Message::kFlagsFieldNumber;
 const int Message::kConfirmIdFieldNumber;
-const int Message::kTypeFieldNumber;
 #endif  // !_MSC_VER
 
 Message::Message()
@@ -409,7 +406,6 @@ void Message::SharedCtor() {
   id_ = GOOGLE_ULONGLONG(0);
   flags_ = 0u;
   confirm_id_ = GOOGLE_ULONGLONG(0);
-  type_ = 0u;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -464,7 +460,6 @@ void Message::Clear() {
     id_ = GOOGLE_ULONGLONG(0);
     flags_ = 0u;
     confirm_id_ = GOOGLE_ULONGLONG(0);
-    type_ = 0u;
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
@@ -492,16 +487,13 @@ bool Message::MergePartialFromCodedStream(
         break;
       }
 
-      // required string payload = 2;
+      // required bytes payload = 2;
       case 2: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
          parse_payload:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
                 input, this->mutable_payload()));
-          ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-            this->payload().data(), this->payload().length(),
-            ::google::protobuf::internal::WireFormat::PARSE);
         } else {
           goto handle_uninterpreted;
         }
@@ -553,22 +545,6 @@ bool Message::MergePartialFromCodedStream(
         } else {
           goto handle_uninterpreted;
         }
-        if (input->ExpectTag(48)) goto parse_type;
-        break;
-      }
-
-      // optional uint32 type = 6;
-      case 6: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
-         parse_type:
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
-                 input, &type_)));
-          set_has_type();
-        } else {
-          goto handle_uninterpreted;
-        }
         if (input->ExpectAtEnd()) return true;
         break;
       }
@@ -600,12 +576,9 @@ void Message::SerializeWithCachedSizes(
       1, this->destination(), output);
   }
 
-  // required string payload = 2;
+  // required bytes payload = 2;
   if (has_payload()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-      this->payload().data(), this->payload().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE);
-    ::google::protobuf::internal::WireFormatLite::WriteString(
+    ::google::protobuf::internal::WireFormatLite::WriteBytes(
       2, this->payload(), output);
   }
 
@@ -622,11 +595,6 @@ void Message::SerializeWithCachedSizes(
   // optional uint64 confirm_id = 5;
   if (has_confirm_id()) {
     ::google::protobuf::internal::WireFormatLite::WriteUInt64(5, this->confirm_id(), output);
-  }
-
-  // optional uint32 type = 6;
-  if (has_type()) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt32(6, this->type(), output);
   }
 
   if (!unknown_fields().empty()) {
@@ -647,13 +615,10 @@ void Message::SerializeWithCachedSizes(
         1, this->destination(), target);
   }
 
-  // required string payload = 2;
+  // required bytes payload = 2;
   if (has_payload()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-      this->payload().data(), this->payload().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE);
     target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+      ::google::protobuf::internal::WireFormatLite::WriteBytesToArray(
         2, this->payload(), target);
   }
 
@@ -670,11 +635,6 @@ void Message::SerializeWithCachedSizes(
   // optional uint64 confirm_id = 5;
   if (has_confirm_id()) {
     target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(5, this->confirm_id(), target);
-  }
-
-  // optional uint32 type = 6;
-  if (has_type()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(6, this->type(), target);
   }
 
   if (!unknown_fields().empty()) {
@@ -695,10 +655,10 @@ int Message::ByteSize() const {
           this->destination());
     }
 
-    // required string payload = 2;
+    // required bytes payload = 2;
     if (has_payload()) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::StringSize(
+        ::google::protobuf::internal::WireFormatLite::BytesSize(
           this->payload());
     }
 
@@ -721,13 +681,6 @@ int Message::ByteSize() const {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::UInt64Size(
           this->confirm_id());
-    }
-
-    // optional uint32 type = 6;
-    if (has_type()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::UInt32Size(
-          this->type());
     }
 
   }
@@ -772,9 +725,6 @@ void Message::MergeFrom(const Message& from) {
     if (from.has_confirm_id()) {
       set_confirm_id(from.confirm_id());
     }
-    if (from.has_type()) {
-      set_type(from.type());
-    }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
 }
@@ -804,7 +754,6 @@ void Message::Swap(Message* other) {
     std::swap(id_, other->id_);
     std::swap(flags_, other->flags_);
     std::swap(confirm_id_, other->confirm_id_);
-    std::swap(type_, other->type_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);

@@ -498,8 +498,7 @@ void Server::stat(Connection* con, std::string dest) {
   }
 
   wire::Message msg;
-  msg.set_destination("+");
-  msg.set_type(eStat);
+  msg.set_destination("+stat");
   msg.set_payload(stat.SerializeAsString());
 
   if(!con->write(msg)) {
