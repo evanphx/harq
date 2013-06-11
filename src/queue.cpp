@@ -114,8 +114,6 @@ std::string Queue::durable_key(int i) {
 }
 
 int Queue::flush_at_most(Connection* con, int count) {
-  std::cerr << "Flush at most: " << count << "\n";
-
   int wrote = 0;
 
   for(Messages::iterator j = transient_.begin();
@@ -424,7 +422,17 @@ queue_it:
     // the error. Otherwise, this can turn into an infinite loop.
 
     debugs << "Delivering message to connection...\n";
-    if(con->deliver(msg, ref(this)) != eIgnored) break;
+    DeliverStatus status = con->deliver(msg, ref(this));
+
+    switch(status) {
+    case eIgnored:
+      debugs << "Connection ignored message, moving to another..\n";
+      break;
+    case eConsumed:
+    case eWaitForAck:
+      debugs << "Connection queued/delivered the message\n";
+      return;
+    }
   }
 }
 
