@@ -30,8 +30,6 @@ WriteStatus Socket::write_raw(const std::string val) {
 
   sz.i = htonl(val.size());
 
-  debugs << "Queue'd data of size " << val.size() << " bytes\n";
-
   writes_.add(std::string(sz.buf,4));
   writes_.add(val);
 
@@ -82,9 +80,23 @@ bool Socket::read_block(wire::Message& msg) {
     got += r;
   } while(got < 4);
 
-  google::protobuf::io::FileInputStream ins(fd);
+  char buf[1024];
+  char* msg_buf = buf;
 
-  if(!msg.ParseFromBoundedZeroCopyStream(&ins, ntohl(sz.i))) return false;
+  assert(got < 1024);
+
+  uint32_t need = ntohl(sz.i);
+  got = 0;
+
+  do {
+    int r = recv(fd, msg_buf+got, need-got, 0);
+    if(r == 0) return false;
+    got += r;
+  } while(got < need);
+
+  std::cout << "Read " << got << " bytes\n";
+
+  if(!msg.ParseFromString(msg_buf)) return false;
 
   return true;
 }

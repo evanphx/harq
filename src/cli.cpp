@@ -10,6 +10,8 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
+#include <sys/time.h>
+
 #include <errno.h>
 
 #include <algorithm>
@@ -88,14 +90,39 @@ end:
       msg.set_confirm_id(7);
     }
 
+    wire::Action act;
+    act.set_type(eMakeTransientQueue);
+    act.set_payload(argv[1]);
+
+    msg.set_destination("+");
+    msg.set_payload(act.SerializeAsString());
+
+    sock.write_block(msg);
+
     msg.set_destination(argv[1]);
     msg.set_payload(argv[2]);
 
-    if(getenv("QUEUE")) {
-      msg.set_flags(eQueue);
-    }
+    if(getenv("BENCHMARK")) {
+      struct timeval start;
+      gettimeofday(&start, 0);
 
-    sock.write_block(msg);
+      for(int i = 0; i < 1000; i++) {
+        std::cout << "Writing message " << i << "\n";
+        sock.write_block(msg);
+      }
+
+      struct timeval fin;
+      gettimeofday(&fin, 0);
+
+      struct timeval diff;
+
+      timerclear(&diff);
+      timersub(&fin, &start, &diff);
+
+      std::cout << "tv_sec=" << diff.tv_sec << " tv_usec=" << diff.tv_usec << "\n";
+    } else {
+      sock.write_block(msg);
+    }
 
     std::cout << "Sent " << msg.ByteSize() << " bytes to " << argv[1] << "\n";
 
@@ -148,20 +175,37 @@ end:
       act.set_type(eConfigure);
       act.set_payload(cfg.SerializeAsString());
 
+      wire::Message msg;
+
+      msg.set_destination("+");
+      msg.set_payload(act.SerializeAsString());
+
+      sock.write_block(msg);
+
       std::cout << "Tapped all messages\n";
     } else {
+      wire::Message msg;
+
+      act.set_type(eMakeTransientQueue);
+      act.set_payload(argv[1]);
+
+      msg.set_destination("+");
+      msg.set_payload(act.SerializeAsString());
+
+      sock.write_block(msg);
+
       act.set_type(eSubscribe);
       act.set_payload(argv[1]);
+
+      msg.set_destination("+");
+      msg.set_payload(act.SerializeAsString());
+
+      sock.write_block(msg);
 
       std::cout << "Listening on " << argv[1] << "\n";
     }
 
-    wire::Message msg;
-
-    msg.set_destination("+");
-    msg.set_payload(act.SerializeAsString());
-
-    sock.write_block(msg);
+    int messages = 0;
 
     for(;;) {
       wire::Message in;
@@ -170,6 +214,7 @@ end:
         return 1;
       }
 
+      std::cout << "Message " << messages++ << "\n";
       WriteJson(in, std::cout);
 
       if(use_acks) {
@@ -177,6 +222,8 @@ end:
         if(in.has_id()) {
           act.set_type(eAck);
           act.set_id(in.id());
+
+          wire::Message msg;
 
           msg.set_destination("+");
           msg.set_payload(act.SerializeAsString());
