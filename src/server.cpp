@@ -44,8 +44,9 @@
 
 #define HARQ_CONFIG "!harq.config"
 
-Server::Server(std::string db_path, std::string hostaddr, int port)
-    : db_path_(db_path)
+Server::Server(Config& cfg, std::string db_path, std::string hostaddr, int port)
+    : config_(cfg)
+    , db_path_(db_path)
     , hostaddr_(hostaddr)
     , port_(port)
     , fd_(-1)

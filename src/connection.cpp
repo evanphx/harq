@@ -17,6 +17,7 @@
 
 #include "wire.pb.h"
 #include "debugs.hpp"
+#include "config.hpp"
 
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 
@@ -34,7 +35,7 @@ Connection::Connection(Server& s, int fd)
   , write_w_(s.loop())
   , open_(true)
   , server_(s)
-  , buffer_(1024)
+  , buffer_(s.config().buffer_size())
   , state_(eReadSize)
   , writer_started_(false)
   , inflight_max_(1)

@@ -86,8 +86,8 @@ int main(int argc, char** argv) {
   // signal(SIGINT,  sig_term);
   signal(SIGPIPE, SIG_IGN);
 
-  /*
   Config cfg("qadmus.cfg");
+  /*
   cfg.open();
   if(!cfg.read()) {
     std::cout << "Config error: " << cfg.error() << "\n";
@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
   cfg.show();
   */
 
-  Server server(data_dir, host, port);
+  Server server(cfg, data_dir, host, port);
   if(!server.read_queues()) return 1;
 
   if(master_port > 0) {

@@ -37,11 +37,14 @@ private:
 
   Peers peers_;
 
+  unsigned buffer_size_;
+
 public:
 
   Config(std::string path)
     : path_(path)
     , db_(0)
+    , buffer_size_(4096)
   {}
 
   ~Config() {
@@ -50,6 +53,10 @@ public:
 
   std::string error() {
     return error_;
+  }
+
+  unsigned buffer_size() {
+    return buffer_size_;
   }
 
   bool open();

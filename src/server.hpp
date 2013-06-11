@@ -19,6 +19,7 @@
 
 class Connection;
 class Message;
+class Config;
 
 typedef std::list<Connection*> Connections;
 
@@ -33,6 +34,7 @@ enum DataStatus {
 };
 
 class Server {
+  Config& config_;
   std::string db_path_;
   std::string hostaddr_;
   int port_;
@@ -61,6 +63,10 @@ class Server {
   Queues queues_;
 
 public:
+
+  Config& config() {
+    return config_;
+  }
 
   leveldb::DB* db() {
     return db_;
@@ -107,7 +113,7 @@ public:
 
   optref<Queue> queue(std::string name);
 
-  Server(std::string db_path, std::string hostaddr, int port);
+  Server(Config& cfg, std::string db_path, std::string hostaddr, int port);
   ~Server();
   void start();
   void on_connection(ev::io& w, int revents);
