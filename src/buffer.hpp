@@ -30,8 +30,6 @@ public:
   void advance_read(int size) {
     uint8_t* const ptr = read_pos_ + size;
     if(ptr > write_pos_) {
-      std::cerr <<
-        "Requested to advance further than available data in buffer\n";
       read_pos_ = write_pos_;
     } else {
       read_pos_ = ptr;
@@ -42,6 +40,11 @@ public:
     if(read_pos_ == write_pos_) {
       read_pos_ = buffer_;
       write_pos_ = buffer_;
+    } else {
+      size_t bytes = write_pos_ - read_pos_;
+      memmove(buffer_, read_pos_, bytes);
+      write_pos_ -= (read_pos_ - buffer_);
+      read_pos_ = buffer_;
     }
   }
 };
