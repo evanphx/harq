@@ -94,9 +94,7 @@ bool Socket::read_block(wire::Message& msg) {
     got += r;
   } while(got < need);
 
-  std::cout << "Read " << got << " bytes\n";
-
-  if(!msg.ParseFromString(msg_buf)) return false;
+  if(!msg.ParseFromString(std::string(msg_buf, need))) return false;
 
   return true;
 }
