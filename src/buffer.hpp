@@ -11,6 +11,7 @@ class Buffer {
   uint8_t* read_pos_;
   uint8_t* write_pos_;
   uint8_t* limit_;
+  uint8_t* slop_pos_;
 
 public:
   Buffer(size_t size);
@@ -23,9 +24,15 @@ public:
     return write_pos_ - read_pos_;
   }
 
+  bool too_much_slop_p() {
+    return read_pos_ > slop_pos_;
+  }
+
   ssize_t fill(int fd);
 
   int read_int32();
+
+  void clean_pigpen();
 
   void advance_read(int size) {
     uint8_t* const ptr = read_pos_ + size;
@@ -40,11 +47,8 @@ public:
     if(read_pos_ == write_pos_) {
       read_pos_ = buffer_;
       write_pos_ = buffer_;
-    } else {
-      size_t bytes = write_pos_ - read_pos_;
-      memmove(buffer_, read_pos_, bytes);
-      write_pos_ -= (read_pos_ - buffer_);
-      read_pos_ = buffer_;
+    } else if(too_much_slop_p()) {
+      clean_pigpen();
     }
   }
 };
